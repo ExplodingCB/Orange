@@ -3,7 +3,14 @@ const hamburger = document.querySelector('.hamburger');
 const navMenu = document.querySelector('.nav-menu');
 const navLinks = document.querySelectorAll('.nav-link');
 
-hamburger.addEventListener('click', () => {
+// Check if we're on mobile
+const isMobile = () => window.innerWidth <= 768;
+
+const toggleMobileNav = (e) => {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
     navMenu.classList.toggle('active');
     
     // Animate hamburger
@@ -15,17 +22,24 @@ hamburger.addEventListener('click', () => {
     bars[2].style.transform = navMenu.classList.contains('active') 
         ? 'rotate(45deg) translate(-5px, -6px)' 
         : 'none';
-});
+};
+
+hamburger.addEventListener('click', toggleMobileNav);
+hamburger.addEventListener('touchstart', toggleMobileNav, { passive: false });
 
 // Close mobile menu when clicking on a link
 navLinks.forEach(link => {
-    link.addEventListener('click', () => {
-        navMenu.classList.remove('active');
-        const bars = hamburger.querySelectorAll('.bar');
-        bars[0].style.transform = 'none';
-        bars[1].style.opacity = '1';
-        bars[2].style.transform = 'none';
-    });
+    const closeMobileNav = () => {
+        if (isMobile()) {
+            navMenu.classList.remove('active');
+            const bars = hamburger.querySelectorAll('.bar');
+            bars[0].style.transform = 'none';
+            bars[1].style.opacity = '1';
+            bars[2].style.transform = 'none';
+        }
+    };
+    link.addEventListener('click', closeMobileNav);
+    link.addEventListener('touchend', closeMobileNav);
 });
 
 // Keep navbar always visible
@@ -99,11 +113,20 @@ const parallaxScroll = () => {
         hero.style.setProperty('--gradient-opacity-mid', (0.03 * fadeAmount).toFixed(3));
     }
 
-    bubbles.forEach((element, index) => {
-        const speed = 0.15 + (index * 0.08);
-        const floatY = Math.sin(scrolled * 0.003 + index) * 10;
-        element.style.transform = `translateY(${scrolled * speed + floatY}px)`;
-    });
+    // Apply parallax only on desktop, reduce effect on mobile
+    if (window.innerWidth > 768) {
+        bubbles.forEach((element, index) => {
+            const speed = 0.15 + (index * 0.08);
+            const floatY = Math.sin(scrolled * 0.003 + index) * 10;
+            element.style.transform = `translateY(${scrolled * speed + floatY}px)`;
+        });
+    } else {
+        // Simpler effect for mobile to improve performance
+        bubbles.forEach((element, index) => {
+            const speed = 0.05 + (index * 0.02);
+            element.style.transform = `translateY(${scrolled * speed}px)`;
+        });
+    }
     
     // Subtle rotation on work items
     workItems.forEach((item, index) => {
@@ -150,7 +173,7 @@ if (heroTitle) {
     const originalText = heroTitle.textContent;
     
     const glitchText = () => {
-        const glitchChars = '!<>-_\\/[]{}—=+*^?#_█▓▒░';
+        const glitchChars = '!-_\\/=+*^?#█▓▒░';
         let glitchedText = '';
         
         for (let i = 0; i < originalText.length; i++) {
@@ -258,30 +281,129 @@ window.addEventListener('load', () => {
     parallaxScroll();
 });
 
-// Add cursor glow effect
-const cursorGlow = document.createElement('div');
-cursorGlow.className = 'cursor-glow';
-document.body.appendChild(cursorGlow);
+// Viewport Scaling System
+const initViewportScaling = () => {
+    const updateScale = () => {
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const screenSize = Math.min(width, height);
+        
+        let scale = 1;
+        let cursorScale = 1;
+        let navFontScale = 1;
+        
+        // Detect device type and apply appropriate scaling
+        if (width <= 480) {
+            // Mobile phones
+            scale = 1;
+            cursorScale = 0.5;
+            navFontScale = 0.65;
+        } else if (width <= 768) {
+            // Small tablets
+            scale = 0.85;
+            cursorScale = 0.6;
+            navFontScale = 0.7;
+        } else if (width <= 1024) {
+            // Tablets and small laptops
+            scale = 0.75;
+            cursorScale = 0.7;
+            navFontScale = 0.85;
+        } else if (width <= 1366) {
+            // Standard laptops
+            scale = 0.8;
+            cursorScale = 0.8;
+            navFontScale = 0.9;
+        } else if (width <= 1920) {
+            // HD screens
+            scale = 0.9;
+            cursorScale = 0.9;
+            navFontScale = 1;
+        } else {
+            // 4K and larger displays
+            scale = 1;
+            cursorScale = 1;
+            navFontScale = 1;
+        }
+        
+        // Apply additional scaling based on pixel density
+        const pixelRatio = window.devicePixelRatio || 1;
+        if (pixelRatio > 1.5) {
+            scale *= 0.9; // Further scale down for high DPI screens
+        }
+        
+        // Update CSS variables for scaling
+        document.documentElement.style.setProperty('--viewport-scale', scale);
+        document.documentElement.style.setProperty('--cursor-scale', cursorScale);
+        document.documentElement.style.setProperty('--font-scale', scale);
+        document.documentElement.style.setProperty('--nav-font-scale', navFontScale);
+        
+        // Update viewport meta tag for proper mobile scaling
+        let viewport = document.querySelector('meta[name="viewport"]');
+        if (viewport) {
+            if (width <= 768) {
+                // Fixed viewport for mobile to prevent zooming issues
+                viewport.content = 'width=device-width, initial-scale=1.0, user-scalable=no';
+            } else {
+                viewport.content = `width=device-width, initial-scale=${scale}, minimum-scale=${scale * 0.8}, maximum-scale=${scale * 1.2}`;
+            }
+        }
+    };
+    
+    // Initial update
+    updateScale();
+    
+    // Update on resize with debouncing
+    let resizeTimeout;
+    window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(updateScale, 100);
+    });
+    
+    // Update on orientation change
+    window.addEventListener('orientationchange', () => {
+        setTimeout(updateScale, 100);
+    });
+};
 
-document.addEventListener('mousemove', (e) => {
-    cursorGlow.style.left = e.clientX + 'px';
-    cursorGlow.style.top = e.clientY + 'px';
-});
+// Initialize viewport scaling
+initViewportScaling();
 
-// Add CSS for cursor glow + glass helpers
+// Add cursor glow effect with scaling support (desktop only)
+if (!('ontouchstart' in window)) {
+    const cursorGlow = document.createElement('div');
+    cursorGlow.className = 'cursor-glow';
+    document.body.appendChild(cursorGlow);
+
+    document.addEventListener('mousemove', (e) => {
+        // Get the current cursor scale from CSS variable
+        const cursorScale = getComputedStyle(document.documentElement)
+            .getPropertyValue('--cursor-scale') || 1;
+        
+        cursorGlow.style.left = e.clientX + 'px';
+        cursorGlow.style.top = e.clientY + 'px';
+    });
+}
+
+// Add CSS for cursor glow + glass helpers with scaling
 const style = document.createElement('style');
 style.textContent = `
+    :root {
+        --viewport-scale: 1;
+        --cursor-scale: 1;
+        --font-scale: 1;
+    }
+    
     .cursor-glow {
         position: fixed;
-        width: 400px;
-        height: 400px;
+        width: calc(400px * var(--cursor-scale));
+        height: calc(400px * var(--cursor-scale));
         border-radius: 50%;
         background: radial-gradient(circle, rgba(230, 126, 60, 0.1) 0%, transparent 70%);
         pointer-events: none;
         transform: translate(-50%, -50%);
         z-index: 9999;
         mix-blend-mode: screen;
-        transition: opacity 0.3s ease;
+        transition: opacity 0.3s ease, width 0.3s ease, height 0.3s ease;
     }
     
     .nav-link.active {
@@ -345,9 +467,30 @@ style.textContent = `
     }
     
     
+    /* Dynamic scaling for different screen sizes */
+    @media (max-width: 1366px) and (min-width: 1025px) {
+        /* Standard laptops */
+        .cursor-glow {
+            transform: translate(-50%, -50%) scale(0.8);
+        }
+    }
+    
     @media (max-width: 768px) {
         .cursor-glow {
             display: none;
+        }
+    }
+    
+    /* Mobile-specific bubble styles */
+    @media (max-width: 768px) {
+        .bubble {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        
+        .spawned-bubble {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
     }
 
@@ -485,8 +628,13 @@ const createBubble = () => {
     const bubble = document.createElement('div');
     bubble.className = 'bubble spawned-bubble';
     
-    // Random size between 60px and 150px
-    const size = Math.random() * 90 + 60;
+    // Get current viewport scale
+    const viewportScale = getComputedStyle(document.documentElement)
+        .getPropertyValue('--viewport-scale') || 1;
+    
+    // Random size between 60px and 150px, scaled
+    const baseSize = Math.random() * 90 + 60;
+    const size = baseSize * parseFloat(viewportScale);
     bubble.style.width = size + 'px';
     bubble.style.height = size + 'px';
     
@@ -530,8 +678,10 @@ const createBubble = () => {
         }, floatDuration);
     }, 50);
     
-    // Add click handler
-    bubble.addEventListener('click', (e) => {
+    // Add click/touch handler
+    const handleBubblePop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         popBubble(bubble, true); // Do spawn new ones for manual pop
         poppedCount++;
         
@@ -548,7 +698,10 @@ const createBubble = () => {
         for (let i = 0; i < newBubbles; i++) {
             setTimeout(() => createBubble(), i * 50);
         }
-    });
+    };
+    
+    bubble.addEventListener('click', handleBubblePop);
+    bubble.addEventListener('touchstart', handleBubblePop, { passive: false });
     
     bubbleCount++;
 };
@@ -562,10 +715,12 @@ const popBubble = (bubble, shouldSpawn = false) => {
     }, 400);
 };
 
-// Add click handlers to existing bubbles
+// Add click/touch handlers to existing bubbles
 const existingBubbles = document.querySelectorAll('.bubble');
 existingBubbles.forEach(bubble => {
-    bubble.addEventListener('click', () => {
+    const handleExistingBubblePop = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
         // Don't remove original bubbles, just animate them
         bubble.style.animation = 'pop 0.5s ease-out';
         
@@ -593,7 +748,10 @@ existingBubbles.forEach(bubble => {
                 bubble.style.animation = 'float-bubble 6s ease-in-out infinite';
             }, 500);
         }, 400);
-    });
+    };
+    
+    bubble.addEventListener('click', handleExistingBubblePop);
+    bubble.addEventListener('touchstart', handleExistingBubblePop, { passive: false });
 });
 
 // Preload optimization
