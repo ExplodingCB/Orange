@@ -599,12 +599,12 @@ existingBubbles.forEach(bubble => {
 // Preload optimization
 const preloadImages = () => {
     const imageUrls = [
-        'https://picsum.photos/seed/titanium/1200/900',
-        'https://picsum.photos/seed/interface/1200/900',
-        'https://picsum.photos/seed/brand/1200/900',
-        'https://picsum.photos/seed/carbon/1200/900',
-        'https://picsum.photos/seed/control/1200/900',
-        'https://picsum.photos/seed/precision/1200/900'
+        'https://picsum.photos/seed/sculptor/1200/900',
+        'https://picsum.photos/seed/xenon/1200/900',
+        'https://picsum.photos/seed/webdev/1200/900',
+        'https://picsum.photos/seed/opensource/1200/900',
+        'https://picsum.photos/seed/ux/1200/900',
+        'https://picsum.photos/seed/engineering/1200/900'
     ];
     
     imageUrls.forEach(url => {
@@ -620,4 +620,4 @@ if (document.readyState === 'loading') {
     preloadImages();
 }
 
-console.log('PRO Portfolio initialized successfully');
+console.log('Chase Culbertson Portfolio initialized successfully');
