@@ -1,46 +1,10 @@
-// Mobile Navigation Toggle
-const hamburger = document.querySelector('.hamburger');
-const navMenu = document.querySelector('.nav-menu');
+// Navigation - Desktop and Mobile
 const navLinks = document.querySelectorAll('.nav-link');
+const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+const allNavLinks = [...navLinks, ...mobileNavLinks];
 
 // Check if we're on mobile
 const isMobile = () => window.innerWidth <= 768;
-
-const toggleMobileNav = (e) => {
-    if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    navMenu.classList.toggle('active');
-    
-    // Animate hamburger
-    const bars = hamburger.querySelectorAll('.bar');
-    bars[0].style.transform = navMenu.classList.contains('active') 
-        ? 'rotate(-45deg) translate(-5px, 6px)' 
-        : 'none';
-    bars[1].style.opacity = navMenu.classList.contains('active') ? '0' : '1';
-    bars[2].style.transform = navMenu.classList.contains('active') 
-        ? 'rotate(45deg) translate(-5px, -6px)' 
-        : 'none';
-};
-
-hamburger.addEventListener('click', toggleMobileNav);
-hamburger.addEventListener('touchstart', toggleMobileNav, { passive: false });
-
-// Close mobile menu when clicking on a link
-navLinks.forEach(link => {
-    const closeMobileNav = () => {
-        if (isMobile()) {
-            navMenu.classList.remove('active');
-            const bars = hamburger.querySelectorAll('.bar');
-            bars[0].style.transform = 'none';
-            bars[1].style.opacity = '1';
-            bars[2].style.transform = 'none';
-        }
-    };
-    link.addEventListener('click', closeMobileNav);
-    link.addEventListener('touchend', closeMobileNav);
-});
 
 // Keep navbar always visible
 const navbar = document.querySelector('.navbar');
@@ -76,7 +40,8 @@ const observerCallback = (entries) => {
     entries.forEach((entry) => {
         if (entry.isIntersecting) {
             const id = entry.target.getAttribute('id');
-            navLinks.forEach((link) => {
+            // Update both desktop and mobile nav links
+            allNavLinks.forEach((link) => {
                 link.classList.remove('active');
                 if (link.getAttribute('href') === `#${id}`) {
                     link.classList.add('active');
@@ -167,40 +132,7 @@ revealElements.forEach(element => {
     revealOnScroll.observe(element);
 });
 
-// Glitch effect for hero title (character replacement only)
-const heroTitle = document.querySelector('.hero-pro');
-if (heroTitle) {
-    const originalText = heroTitle.textContent;
-    
-    const glitchText = () => {
-        const glitchChars = '!-_\\/=+*^?#█▓▒░';
-        let glitchedText = '';
-        
-        for (let i = 0; i < originalText.length; i++) {
-            if (Math.random() > 0.9) { // Only change 10% of characters
-                glitchedText += glitchChars[Math.floor(Math.random() * glitchChars.length)];
-            } else {
-                glitchedText += originalText[i];
-            }
-        }
-        
-        heroTitle.textContent = glitchedText;
-        
-        setTimeout(() => {
-            heroTitle.textContent = originalText;
-        }, 150);
-    };
-    
-    // Random glitch effect
-    setInterval(() => {
-        if (Math.random() > 0.8) { // 20% chance every 4 seconds
-            glitchText();
-        }
-    }, 4000);
-    
-    // Glitch on hover
-    heroTitle.addEventListener('mouseenter', glitchText);
-}
+// Glitch effect removed per user request
 
 // Counter animation for stats
 const animateCounter = (element, target, duration = 2000) => {
@@ -554,14 +486,18 @@ debounceScroll(() => {
     });
 });
 
-// Add keyboard navigation
+// Add keyboard navigation for accessibility
 document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && navMenu.classList.contains('active')) {
-        navMenu.classList.remove('active');
-        const bars = hamburger.querySelectorAll('.bar');
-        bars[0].style.transform = 'none';
-        bars[1].style.opacity = '1';
-        bars[2].style.transform = 'none';
+    // Handle tab navigation for mobile bottom nav
+    if (e.key === 'Tab' && isMobile()) {
+        const focusedElement = document.activeElement;
+        const mobileNavContainer = document.querySelector('.mobile-bottom-nav');
+        
+        if (mobileNavContainer && mobileNavContainer.contains(focusedElement)) {
+            // Add visual feedback for keyboard navigation
+            focusedElement.style.outline = '2px solid var(--orange-primary)';
+            focusedElement.style.outlineOffset = '2px';
+        }
     }
 });
 
@@ -777,5 +713,48 @@ if (document.readyState === 'loading') {
 } else {
     preloadImages();
 }
+
+// Mobile Navigation Initialization
+const initMobileNavigation = () => {
+    const mobileNav = document.querySelector('.mobile-bottom-nav');
+    const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+    
+    if (mobileNav && isMobile()) {
+        // Add touch feedback for mobile nav links
+        mobileNavLinks.forEach(link => {
+            link.addEventListener('touchstart', (e) => {
+                link.style.transform = 'translateY(0) scale(0.95)';
+            }, { passive: true });
+            
+            link.addEventListener('touchend', (e) => {
+                setTimeout(() => {
+                    link.style.transform = '';
+                }, 150);
+            }, { passive: true });
+            
+            // Add haptic feedback if available
+            link.addEventListener('click', () => {
+                if (navigator.vibrate) {
+                    navigator.vibrate(50); // Short vibration
+                }
+            });
+        });
+        
+        // Set initial active state based on current page/section
+        const currentPath = window.location.pathname;
+        const currentHash = window.location.hash;
+        
+        mobileNavLinks.forEach(link => {
+            const href = link.getAttribute('href');
+            if ((href.startsWith('#') && href === currentHash) || 
+                (href.endsWith('.html') && currentPath.includes(href))) {
+                link.classList.add('active');
+            }
+        });
+    }
+};
+
+// Initialize mobile navigation
+initMobileNavigation();
 
 console.log('Chase Culbertson Portfolio initialized successfully');

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 
+    Dynamic Viewport Scaling System:
+    - Automatically adjusts page zoom based on screen size
+    - Scales down content on laptops (80%) and tablets (75-85%)
+    - Maintains cursor effect proportions across all screen sizes
+    - Responsive breakpoints: Mobile (480px), Tablet (768px), Laptop (1366px), HD (1920px)
+    -->
+    <title>Blog - ExplodingCB</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/icons/logo.svg">
+    <meta name="theme-color" content="#E67E3C">
+    <link rel="stylesheet" href="../styles/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Liquid Glass Navigation -->
+    <nav class="navbar liquid-glass-nav" role="navigation" aria-label="Primary">
+        <div class="nav-glow"></div>
+        <div class="nav-container">
+            <ul class="nav-menu">
+                <li><a href="../index.html" class="nav-link">Home</a></li>
+                <li><a href="../index.html#work" class="nav-link">Work</a></li>
+                <li><a href="../index.html#about" class="nav-link">About</a></li>
+                <li><a href="blog.html" class="nav-link active">Blog</a></li>
+                <li><a href="../index.html#contact" class="nav-link">Contact</a></li>
+            </ul>
+            <div class="hamburger">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </div>
+        </div>
+        <div class="nav-refraction"></div>
+        <div class="nav-glare"></div>
+    </nav>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav" role="navigation" aria-label="Mobile Navigation">
+        <ul class="mobile-nav-menu">
+            <li><a href="../index.html" class="mobile-nav-link">
+                <div class="mobile-nav-icon home-icon">
+                    <div class="shine-effect"></div>
+                </div>
+                Home
+            </a></li>
+            <li><a href="../index.html#work" class="mobile-nav-link">
+                <div class="mobile-nav-icon work-icon">
+                    <div class="shine-effect"></div>
+                </div>
+                Work
+            </a></li>
+            <li><a href="../index.html#about" class="mobile-nav-link">
+                <div class="mobile-nav-icon about-icon">
+                    <div class="shine-effect"></div>
+                </div>
+                About
+            </a></li>
+            <li><a href="blog.html" class="mobile-nav-link active">
+                <div class="mobile-nav-icon blog-icon">
+                    <div class="shine-effect"></div>
+                </div>
+                Blog
+            </a></li>
+            <li><a href="../index.html#contact" class="mobile-nav-link">
+                <div class="mobile-nav-icon contact-icon">
+                    <div class="shine-effect"></div>
+                </div>
+                Contact
+            </a></li>
+        </ul>
+    </nav>
+
+    <!-- Blog Hero Section -->
+    <section class="blog-hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1 class="hero-title">
+                    <span class="hero-subtitle">Latest Thoughts</span>
+                    <span class="hero-pro">Blog</span>
+                </h1>
+                <p class="hero-description">
+                    Insights on technology, design, and innovation. Exploring the intersection of 
+                    engineering and creativity through thoughtful analysis and personal experiences.
+                </p>
+            </div>
+            <div class="hero-visual">
+                <div class="bubble orb-1">
+                    <div class="bubble-shine"></div>
+                </div>
+                <div class="bubble orb-2">
+                    <div class="bubble-shine"></div>
+                </div>
+                <div class="bubble orb-3">
+                    <div class="bubble-shine"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Blog Posts Section -->
+    <section class="blog-posts">
+        <div class="container">
+            <div class="blog-posts-list">
+                <div class="blog-posts-container">
+                    <article class="blog-post featured">
+                    <div class="post-content">
+                        <div class="post-meta">
+                            <span class="post-date">March 15, 2025</span>
+                            <span class="post-read-time">8 min read</span>
+                        </div>
+                        <h2 class="post-title">The Future of AI Development: Beyond the Hype</h2>
+                        <p class="post-excerpt">
+                            Exploring the real implications of AI advancement on software development, 
+                            design processes, and the future of human-computer collaboration. A deep dive 
+                            into what's actually happening behind the headlines.
+                        </p>
+                        <a href="article.html" class="read-more-btn">Read Full Article →</a>
+                    </div>
+                </article>
+
+                <article class="blog-post">
+                    <div class="post-content">
+                        <div class="post-meta">
+                            <span class="post-date">March 8, 2025</span>
+                            <span class="post-read-time">6 min read</span>
+                        </div>
+                        <h3 class="post-title">Building Scalable Design Systems</h3>
+                        <p class="post-excerpt">
+                            How to create design systems that grow with your product and team. 
+                            Lessons learned from building component libraries that actually get used.
+                        </p>
+                        <a href="article.html" class="read-more-btn">Read Article →</a>
+                    </div>
+                </article>
+
+                <article class="blog-post">
+                    <div class="post-content">
+                        <div class="post-meta">
+                            <span class="post-date">February 28, 2025</span>
+                            <span class="post-read-time">10 min read</span>
+                        </div>
+                        <h3 class="post-title">Web Performance: The Hidden UX Factor</h3>
+                        <p class="post-excerpt">
+                            Why performance is user experience, and how to optimize for speed without 
+                            sacrificing functionality. Real-world case studies and practical techniques.
+                        </p>
+                        <a href="article.html" class="read-more-btn">Read Article →</a>
+                    </div>
+                </article>
+
+                <article class="blog-post">
+                    <div class="post-content">
+                        <div class="post-meta">
+                            <span class="post-date">February 20, 2025</span>
+                            <span class="post-read-time">7 min read</span>
+                        </div>
+                        <h3 class="post-title">Mastering Remote Team Collaboration</h3>
+                        <p class="post-excerpt">
+                            Tools, techniques, and mindset shifts that make distributed teams more 
+                            effective than co-located ones. Building culture across time zones.
+                        </p>
+                        <a href="article.html" class="read-more-btn">Read Article →</a>
+                    </div>
+                </article>
+
+                <article class="blog-post">
+                    <div class="post-content">
+                        <div class="post-meta">
+                            <span class="post-date">February 12, 2025</span>
+                            <span class="post-read-time">5 min read</span>
+                        </div>
+                        <h3 class="post-title">Your First Open Source Contribution</h3>
+                        <p class="post-excerpt">
+                            A beginner's guide to contributing to open source projects. Finding the right 
+                            projects, making meaningful contributions, and building your reputation.
+                        </p>
+                        <a href="article.html" class="read-more-btn">Read Article →</a>
+                    </div>
+                </article>
+
+                <article class="blog-post">
+                    <div class="post-content">
+                        <div class="post-meta">
+                            <span class="post-date">February 5, 2025</span>
+                            <span class="post-read-time">9 min read</span>
+                        </div>
+                        <h3 class="post-title">Engineering Creativity: Finding Innovation in Constraints</h3>
+                        <p class="post-excerpt">
+                            How limitations spark innovation and why the best solutions often come from 
+                            the tightest constraints. Lessons from building with limited resources.
+                        </p>
+                        <a href="article.html" class="read-more-btn">Read Article →</a>
+                    </div>
+                </article>
+                </div>
+
+            <!-- Blog Categories -->
+            <aside class="blog-sidebar">
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Categories</h3>
+                    <div class="category-list">
+                        <p class="empty-message">Categories will appear here as you publish articles.</p>
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Recent Posts</h3>
+                    <div class="recent-posts">
+                        <a href="#" class="recent-post">
+                            <div class="recent-post-content">
+                                <h4 class="recent-post-title">Building Better APIs</h4>
+                                <span class="recent-post-date">March 10, 2025</span>
+                            </div>
+                        </a>
+                        <a href="#" class="recent-post">
+                            <div class="recent-post-content">
+                                <h4 class="recent-post-title">CSS Grid Mastery</h4>
+                                <span class="recent-post-date">March 3, 2025</span>
+                            </div>
+                        </a>
+                        <a href="#" class="recent-post">
+                            <div class="recent-post-content">
+                                <h4 class="recent-post-title">TypeScript Tips</h4>
+                                <span class="recent-post-date">February 25, 2025</span>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 Chase Culbertson. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="../scripts/script.js"></script>
+</body>
+</html>
