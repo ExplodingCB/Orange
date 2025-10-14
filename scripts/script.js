@@ -1,16 +1,63 @@
 // Navigation - Desktop and Mobile
 const navLinks = document.querySelectorAll('.nav-link');
-const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
-const allNavLinks = [...navLinks, ...mobileNavLinks];
+const mobileMenuLinks = document.querySelectorAll('.mobile-menu-link');
+const allNavLinks = [...navLinks, ...mobileMenuLinks];
 
 // Check if we're on mobile
 const isMobile = () => window.innerWidth <= 768;
 
-// Keep navbar always visible
+// Navbar scroll behavior
 const navbar = document.querySelector('.navbar');
-if (navbar) {
-    navbar.style.transform = 'translateX(-50%)';
-}
+let lastScrollTop = 0;
+
+const handleNavbarScroll = () => {
+    if (!navbar) return;
+    
+    // Only apply scroll behavior on mobile
+    if (!isMobile()) {
+        navbar.classList.remove('hidden');
+        return;
+    }
+    
+    // Don't hide navbar if mobile menu is open
+    const mobileMenuOverlay = document.querySelector('.mobile-menu-overlay');
+    if (mobileMenuOverlay && mobileMenuOverlay.classList.contains('active')) {
+        navbar.classList.remove('hidden');
+        return;
+    }
+    
+    const currentScroll = window.pageYOffset || document.documentElement.scrollTop;
+    
+    // Don't hide at the very top
+    if (currentScroll <= 50) {
+        navbar.classList.remove('hidden');
+        lastScrollTop = currentScroll;
+        return;
+    }
+    
+    // Scrolling down - hide navbar
+    if (currentScroll > lastScrollTop && currentScroll > 50) {
+        navbar.classList.add('hidden');
+    } 
+    // Scrolling up - show navbar
+    else if (currentScroll < lastScrollTop) {
+        navbar.classList.remove('hidden');
+    }
+    
+    lastScrollTop = currentScroll;
+};
+
+// Scroll handler with requestAnimationFrame for smoothness
+let ticking = false;
+window.addEventListener('scroll', () => {
+    if (!ticking) {
+        window.requestAnimationFrame(() => {
+            handleNavbarScroll();
+            ticking = false;
+        });
+        ticking = true;
+    }
+}, { passive: true });
 
 // Smooth scroll with offset for fixed navbar
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -54,10 +101,9 @@ const observerCallback = (entries) => {
 const observer = new IntersectionObserver(observerCallback, observerOptions);
 sections.forEach((section) => observer.observe(section));
 
-// Parallax effect for bubbles and gradient fade
+// Gradient fade effect (bubbles no longer move on scroll)
 const parallaxScroll = () => {
     const scrolled = window.pageYOffset;
-    const bubbles = document.querySelectorAll('.bubble');
     const workItems = document.querySelectorAll('.work-item');
     const hero = document.querySelector('.hero');
     
@@ -66,40 +112,17 @@ const parallaxScroll = () => {
         const heroHeight = hero.offsetHeight;
         const fadeStart = 0;
         const fadeEnd = heroHeight * 0.5; // Fade out by 50% of hero height
-        
+
         // Calculate fade amount (1 at top, 0 when scrolled past fadeEnd)
         let fadeAmount = 1;
         if (scrolled > fadeStart) {
             fadeAmount = Math.max(0, 1 - ((scrolled - fadeStart) / (fadeEnd - fadeStart)));
         }
-        
+
         // Update CSS variables for gradient opacity
         hero.style.setProperty('--gradient-opacity-bottom', (0.08 * fadeAmount).toFixed(3));
         hero.style.setProperty('--gradient-opacity-mid', (0.03 * fadeAmount).toFixed(3));
     }
-
-    // Apply parallax only on desktop, reduce effect on mobile
-    if (window.innerWidth > 768) {
-        bubbles.forEach((element, index) => {
-            const speed = 0.15 + (index * 0.08);
-            const floatY = Math.sin(scrolled * 0.003 + index) * 10;
-            element.style.transform = `translateY(${scrolled * speed + floatY}px)`;
-        });
-    } else {
-        // Simpler effect for mobile to improve performance
-        bubbles.forEach((element, index) => {
-            const speed = 0.05 + (index * 0.02);
-            element.style.transform = `translateY(${scrolled * speed}px)`;
-        });
-    }
-    
-    // Subtle rotation on work items
-    workItems.forEach((item, index) => {
-        if (item.getBoundingClientRect().top < window.innerHeight) {
-            const rotation = Math.sin(scrolled * 0.005 + index) * 2;
-            item.style.transform = `rotate(${rotation}deg)`;
-        }
-    });
 };
 
 window.addEventListener('scroll', parallaxScroll);
@@ -172,34 +195,7 @@ if (statsSection) {
     statsObserver.observe(statsSection);
 }
 
-// Tilt effect for about card
-const aboutCard = document.querySelector('.about-card');
-const bindBrutalTilt = (el, base = -15) => {
-    if (!el) return;
-    el.addEventListener('mousemove', (e) => {
-        const rect = el.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
-        const rotateX = (y - centerY) / 8;
-        const rotateY = (centerX - x) / 8;
-        const scale = 1 + Math.abs(rotateX * rotateY) * 0.0001;
-        el.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale(${scale})`;
-    });
-    el.addEventListener('mouseleave', () => {
-        el.style.transform = `perspective(1000px) rotateY(${base}deg) scale(1)`;
-        // Spring effect
-        setTimeout(() => {
-            el.style.transform = `perspective(1000px) rotateY(${base + 5}deg) scale(0.98)`;
-        }, 100);
-        setTimeout(() => {
-            el.style.transform = `perspective(1000px) rotateY(${base}deg) scale(1)`;
-        }, 200);
-    });
-};
-
-bindBrutalTilt(aboutCard, -15);
+// About card - no special effects needed
 
 // Smooth page load animation
 window.addEventListener('load', () => {
@@ -268,17 +264,6 @@ const initViewportScaling = () => {
         document.documentElement.style.setProperty('--cursor-scale', cursorScale);
         document.documentElement.style.setProperty('--font-scale', scale);
         document.documentElement.style.setProperty('--nav-font-scale', navFontScale);
-        
-        // Update viewport meta tag for proper mobile scaling
-        let viewport = document.querySelector('meta[name="viewport"]');
-        if (viewport) {
-            if (width <= 768) {
-                // Fixed viewport for mobile to prevent zooming issues
-                viewport.content = 'width=device-width, initial-scale=1.0, user-scalable=no';
-            } else {
-                viewport.content = `width=device-width, initial-scale=${scale}, minimum-scale=${scale * 0.8}, maximum-scale=${scale * 1.2}`;
-            }
-        }
     };
     
     // Initial update
@@ -411,19 +396,8 @@ style.textContent = `
         .cursor-glow {
             display: none;
         }
-    }
-    
-    /* Mobile-specific bubble styles */
-    @media (max-width: 768px) {
-        .bubble {
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-        }
         
-        .spawned-bubble {
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-        }
+        /* Bubbles are hidden on mobile via display: none in main stylesheet */
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -486,20 +460,8 @@ debounceScroll(() => {
     });
 });
 
-// Add keyboard navigation for accessibility
-document.addEventListener('keydown', (e) => {
-    // Handle tab navigation for mobile bottom nav
-    if (e.key === 'Tab' && isMobile()) {
-        const focusedElement = document.activeElement;
-        const mobileNavContainer = document.querySelector('.mobile-bottom-nav');
-        
-        if (mobileNavContainer && mobileNavContainer.contains(focusedElement)) {
-            // Add visual feedback for keyboard navigation
-            focusedElement.style.outline = '2px solid var(--orange-primary)';
-            focusedElement.style.outlineOffset = '2px';
-        }
-    }
-});
+// Keyboard navigation is handled by default browser behavior
+// with enhanced focus styles defined in CSS
 
 // Navbar glare interaction (no animations)
 const navbarInteraction = () => {
@@ -529,13 +491,15 @@ const navbarInteraction = () => {
 
 navbarInteraction();
 
-// Bubble spawning and pop effect with ramping
+// Bubble spawning and pop effect with ramping (desktop only)
 let bubbleCount = 4; // Start with 4 bubbles
 let poppedCount = 0; // Track total bubbles popped
 let spawnMultiplier = 1; // Increases as more bubbles are popped
 
 // Show multiplier indicator
 const showMultiplierIndicator = () => {
+    if (isMobile()) return; // No indicators on mobile
+    
     const indicator = document.createElement('div');
     indicator.style.cssText = `
         position: fixed;
@@ -555,9 +519,8 @@ const showMultiplierIndicator = () => {
     setTimeout(() => indicator.remove(), 1000);
 };
 
-// Bubble counter removed per user request
-
 const createBubble = () => {
+    if (isMobile()) return; // No bubble spawning on mobile
     const heroVisual = document.querySelector('.hero-visual');
     if (!heroVisual) return;
     
@@ -651,9 +614,10 @@ const popBubble = (bubble, shouldSpawn = false) => {
     }, 400);
 };
 
-// Add click/touch handlers to existing bubbles
-const existingBubbles = document.querySelectorAll('.bubble');
-existingBubbles.forEach(bubble => {
+// Add click/touch handlers to existing bubbles (desktop only)
+if (!isMobile()) {
+    const existingBubbles = document.querySelectorAll('.bubble');
+    existingBubbles.forEach(bubble => {
     const handleExistingBubblePop = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -688,7 +652,8 @@ existingBubbles.forEach(bubble => {
     
     bubble.addEventListener('click', handleExistingBubblePop);
     bubble.addEventListener('touchstart', handleExistingBubblePop, { passive: false });
-});
+    });
+}
 
 // Preload optimization
 const preloadImages = () => {
@@ -714,47 +679,193 @@ if (document.readyState === 'loading') {
     preloadImages();
 }
 
-// Mobile Navigation Initialization
-const initMobileNavigation = () => {
-    const mobileNav = document.querySelector('.mobile-bottom-nav');
-    const mobileNavLinks = document.querySelectorAll('.mobile-nav-link');
+// Mobile Menu Toggle
+const initMobileMenu = () => {
+    const hamburger = document.querySelector('.hamburger');
+    const mobileMenuOverlay = document.querySelector('.mobile-menu-overlay');
+    const mobileMenuLinks = document.querySelectorAll('.mobile-menu-link');
     
-    if (mobileNav && isMobile()) {
-        // Add touch feedback for mobile nav links
-        mobileNavLinks.forEach(link => {
-            link.addEventListener('touchstart', (e) => {
-                link.style.transform = 'translateY(0) scale(0.95)';
-            }, { passive: true });
-            
-            link.addEventListener('touchend', (e) => {
-                setTimeout(() => {
-                    link.style.transform = '';
-                }, 150);
-            }, { passive: true });
-            
-            // Add haptic feedback if available
-            link.addEventListener('click', () => {
-                if (navigator.vibrate) {
-                    navigator.vibrate(50); // Short vibration
-                }
-            });
-        });
+    if (!hamburger || !mobileMenuOverlay) return;
+    
+    // Toggle menu
+    hamburger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpening = !mobileMenuOverlay.classList.contains('active');
         
-        // Set initial active state based on current page/section
-        const currentPath = window.location.pathname;
-        const currentHash = window.location.hash;
+        mobileMenuOverlay.classList.toggle('active');
+        hamburger.classList.toggle('active');
         
-        mobileNavLinks.forEach(link => {
-            const href = link.getAttribute('href');
-            if ((href.startsWith('#') && href === currentHash) || 
-                (href.endsWith('.html') && currentPath.includes(href))) {
-                link.classList.add('active');
-            }
+        // Always show navbar when opening menu
+        if (isOpening && navbar) {
+            navbar.classList.remove('hidden');
+        }
+    });
+    
+    // Close menu when clicking on overlay
+    mobileMenuOverlay.addEventListener('click', (e) => {
+        if (e.target === mobileMenuOverlay || e.target.classList.contains('mobile-menu-content')) {
+            mobileMenuOverlay.classList.remove('active');
+            hamburger.classList.remove('active');
+        }
+    });
+    
+    // Close menu and navigate when clicking links
+    mobileMenuLinks.forEach(link => {
+        link.addEventListener('click', () => {
+            mobileMenuOverlay.classList.remove('active');
+            hamburger.classList.remove('active');
         });
-    }
+    });
+    
+    // Close menu on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && mobileMenuOverlay.classList.contains('active')) {
+            mobileMenuOverlay.classList.remove('active');
+            hamburger.classList.remove('active');
+        }
+    });
 };
 
-// Initialize mobile navigation
-initMobileNavigation();
+// Initialize mobile menu (always available, CSS handles visibility)
+initMobileMenu();
+
+// Work Preview Functionality with Rolodex Scroll (desktop only)
+const initWorkPreview = () => {
+    // Skip on mobile - just use simple tap-to-visit
+    if (isMobile()) return;
+    
+    const workList = document.querySelector('.work-list');
+    const workItems = document.querySelectorAll('.work-item');
+    const workIframe = document.getElementById('work-iframe');
+
+    if (!workItems.length || !workIframe || !workList) return;
+
+    let currentIndex = 0;
+    let isDragging = false;
+    let startY = 0;
+    let scrollTop = 0;
+
+    // Function to update active item and preview
+    const updateActiveItem = (index) => {
+        if (index < 0) index = 0;
+        if (index >= workItems.length) index = workItems.length - 1;
+
+        currentIndex = index;
+
+        // Remove active class from all items
+        workItems.forEach((item, i) => {
+            item.classList.remove('active');
+        });
+
+        // Add active class to current item
+        workItems[currentIndex].classList.add('active');
+
+        // Update iframe src
+        const url = workItems[currentIndex].getAttribute('data-url');
+        if (url && !workIframe.src.includes(url)) {
+            workIframe.src = url;
+        }
+    };
+
+    // Mouse/Touch events for rolodex scrolling
+    const handleStart = (e) => {
+        isDragging = true;
+        startY = e.type === 'touchstart' ? e.touches[0].clientY : e.clientY;
+        scrollTop = workList.scrollTop;
+        workList.style.scrollBehavior = 'auto';
+    };
+
+    const handleMove = (e) => {
+        if (!isDragging) return;
+        e.preventDefault();
+
+        const currentY = e.type === 'touchmove' ? e.touches[0].clientY : e.clientY;
+        const deltaY = startY - currentY;
+
+        // Scroll the list
+        workList.scrollTop = scrollTop + deltaY;
+
+        // Calculate which item should be active based on scroll position
+        const itemHeight = workItems[0].offsetHeight + 8; // height + margin
+        const scrollProgress = workList.scrollTop;
+        const newIndex = Math.round(scrollProgress / itemHeight);
+
+        if (newIndex !== currentIndex) {
+            updateActiveItem(newIndex);
+        }
+    };
+
+    const handleEnd = () => {
+        if (!isDragging) return;
+        isDragging = false;
+        workList.style.scrollBehavior = 'smooth';
+
+        // Snap to nearest item
+        const itemHeight = workItems[0].offsetHeight + 8;
+        const targetScroll = currentIndex * itemHeight;
+        workList.scrollTop = targetScroll;
+    };
+
+    // Mouse events
+    workList.addEventListener('mousedown', handleStart);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+
+    // Touch events
+    workList.addEventListener('touchstart', handleStart, { passive: false });
+    document.addEventListener('touchmove', handleMove, { passive: false });
+    document.addEventListener('touchend', handleEnd);
+
+    // Hover to preview (for non-drag interaction)
+    workItems.forEach((item, index) => {
+        item.addEventListener('mouseenter', () => {
+            if (!isDragging) {
+                updateActiveItem(index);
+            }
+        });
+
+        // Click to open in new tab
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const url = item.getAttribute('href');
+            if (url) {
+                window.open(url, '_blank');
+            }
+        });
+    });
+
+    // Mouse wheel scrolling
+    workList.addEventListener('wheel', (e) => {
+        e.preventDefault();
+
+        const itemHeight = workItems[0].offsetHeight + 8;
+        const delta = Math.sign(e.deltaY);
+
+        updateActiveItem(currentIndex + delta);
+
+        // Smooth scroll to the active item
+        workList.scrollTop = currentIndex * itemHeight;
+    }, { passive: false });
+
+    // Initialize first item
+    updateActiveItem(0);
+};
+
+// Initialize work preview
+initWorkPreview();
+
+// Mobile work items - simple tap to open
+if (isMobile()) {
+    const workItems = document.querySelectorAll('.work-item');
+    workItems.forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const url = item.getAttribute('href') || item.getAttribute('data-url');
+            if (url) {
+                window.open(url, '_blank', 'noopener,noreferrer');
+            }
+        });
+    });
+}
 
 console.log('Chase Culbertson Portfolio initialized successfully');
