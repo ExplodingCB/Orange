@@ -1,0 +1,587 @@
+/* ============================================================
+   GREENHOUSE — Chase Culbertson
+   Dawn light through a fir canopy, seen through liquid glass.
+   ============================================================ */
+
+:root {
+    --deep:      #06120c;   /* forest floor before dawn */
+    --moss:      #8fbc9c;   /* moss in light */
+    --seaglass:  #b5d4c3;   /* misted glass tint */
+    --fog:       #eef6f0;   /* morning fog / text */
+    --salmon:    #e89a82;   /* the one warm thing */
+    --gold:      #d6e2ae;   /* dawn through the canopy */
+
+    --display: 'EB Garamond', Georgia, serif;
+    --body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+    --mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+
+    --hairline: rgba(238, 246, 240, 0.12);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html {
+    scroll-behavior: smooth;
+    overflow-anchor: none;
+}
+
+body {
+    position: relative;
+    overflow-anchor: none;
+    font-family: var(--body);
+    background-color: var(--deep);
+    background-image:
+        radial-gradient(90% 60% at 14% -10%, rgba(222, 228, 160, 0.17) 0%, transparent 55%),
+        radial-gradient(70% 55% at 88% 6%, rgba(44, 118, 138, 0.5) 0%, transparent 65%),
+        radial-gradient(60% 50% at 62% 42%, rgba(24, 90, 64, 0.6) 0%, transparent 70%),
+        radial-gradient(55% 45% at 6% 52%, rgba(56, 96, 128, 0.3) 0%, transparent 65%),
+        radial-gradient(75% 50% at 18% 100%, rgba(232, 154, 130, 0.13) 0%, transparent 60%),
+        radial-gradient(60% 45% at 88% 96%, rgba(92, 74, 122, 0.28) 0%, transparent 65%),
+        linear-gradient(to bottom, #0b2416, #071a11 45%, #081521 100%);
+    background-attachment: fixed;
+    color: var(--fog);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+::selection { background: rgba(143, 188, 156, 0.35); color: var(--fog); }
+
+a { color: inherit; text-decoration: none; }
+
+em { font-style: italic; }
+
+:focus-visible {
+    outline: 2px solid var(--seaglass);
+    outline-offset: 3px;
+    border-radius: 6px;
+}
+
+/* ------------------------------------------------------------
+   Atmosphere
+   ------------------------------------------------------------ */
+
+.atmosphere {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.mist {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(90px);
+}
+
+.mist-a {
+    width: 58vw; height: 58vw;
+    top: -15vw; left: -12vw;
+    background: radial-gradient(circle, rgba(58, 122, 87, 0.55) 0%, transparent 65%);
+    animation: drift-a 46s ease-in-out infinite alternate;
+}
+
+.mist-b {
+    width: 48vw; height: 48vw;
+    top: 24vh; right: -16vw;
+    background: radial-gradient(circle, rgba(36, 112, 136, 0.55) 0%, transparent 65%);
+    animation: drift-b 58s ease-in-out infinite alternate;
+}
+
+.mist-c {
+    width: 30vw; height: 30vw;
+    top: 4vh; left: 30vw;
+    background: radial-gradient(circle, rgba(214, 226, 174, 0.16) 0%, transparent 60%);
+    animation: drift-b 64s ease-in-out infinite alternate-reverse;
+}
+
+.mist-d {
+    width: 40vw; height: 40vw;
+    bottom: -12vw; left: 8vw;
+    background: radial-gradient(circle, rgba(232, 154, 130, 0.13) 0%, transparent 60%);
+    animation: drift-a 70s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes drift-a {
+    from { transform: translate(0, 0) scale(1); }
+    to   { transform: translate(9vw, 6vh) scale(1.15); }
+}
+
+@keyframes drift-b {
+    from { transform: translate(0, 0) scale(1.1); }
+    to   { transform: translate(-8vw, -5vh) scale(0.95); }
+}
+
+.shaft {
+    position: absolute;
+    top: -20vh;
+    width: 16vw;
+    height: 120vh;
+    background: linear-gradient(to bottom, rgba(228, 240, 214, 0.07), transparent 70%);
+    filter: blur(28px);
+    transform: skewX(-14deg);
+}
+
+.shaft-a { left: 20vw; }
+.shaft-b { left: 52vw; width: 8vw; opacity: 0.75; }
+
+@media (prefers-reduced-motion: reduce) {
+    .mist { animation: none; }
+    html { scroll-behavior: auto; }
+}
+
+/* ------------------------------------------------------------
+   Journey: road, big firs, the car — behind the glass
+   ------------------------------------------------------------ */
+
+.journey {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.scene {
+    position: absolute;
+    inset: 0;
+    font-family: var(--mono);
+    font-size: 13px;
+    line-height: 1.15;
+    white-space: pre;
+    user-select: none;
+}
+
+.scene-far {
+    color: #92b4c6;
+    opacity: 0.22;
+    filter: blur(1.6px);
+}
+
+.scene-mid {
+    color: var(--moss);
+    opacity: 0.3;
+    filter: blur(0.5px);
+}
+
+.scene-near {
+    color: #b4d49e;
+    opacity: 0.42;
+}
+
+.car-wrap {
+    position: absolute;
+    top: 0;
+    left: 0;
+    will-change: transform;
+}
+
+.car {
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.1;
+    color: var(--salmon);
+    white-space: pre;
+    user-select: none;
+    text-shadow: 0 0 14px rgba(232, 154, 130, 0.55);
+}
+
+/* headlights, pointing down the road */
+.car-wrap::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 52px;
+    height: 70px;
+    background: radial-gradient(55% 65% at 50% 0%, rgba(214, 226, 174, 0.3) 0%, transparent 70%);
+    filter: blur(6px);
+}
+
+@media (max-width: 760px) {
+    .scene { font-size: 10px; }
+    .car { font-size: 11px; }
+}
+
+/* type sitting directly on the forest gets a little fog behind it */
+.hero-inner, .section-title, .section-label, .about-body, .hello-email, .hello-links, .footer-inner {
+    text-shadow: 0 1px 16px rgba(6, 18, 12, 0.9), 0 0 3px rgba(6, 18, 12, 0.7);
+}
+
+/* ------------------------------------------------------------
+   Liquid glass panes
+   ------------------------------------------------------------ */
+
+.pane {
+    position: relative;
+    border-radius: 24px;
+    background: linear-gradient(160deg, rgba(238, 246, 240, 0.10), rgba(238, 246, 240, 0.03));
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
+    backdrop-filter: blur(22px) saturate(170%);
+    border: 1px solid rgba(238, 246, 240, 0.14);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.22),
+        inset 0 -1px 0 rgba(6, 18, 12, 0.35),
+        0 24px 48px -16px rgba(2, 8, 5, 0.55);
+}
+
+/* specular bloom on the top-left curve */
+.pane::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: radial-gradient(120% 60% at 18% -8%, rgba(255, 255, 255, 0.14) 0%, transparent 55%);
+    pointer-events: none;
+}
+
+/* ------------------------------------------------------------
+   Nav — the pill stays
+   ------------------------------------------------------------ */
+
+.nav {
+    position: fixed;
+    top: 18px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+    padding: 0.65rem 1.6rem;
+    border-radius: 999px;
+    max-width: calc(100% - 2rem);
+}
+
+.nav-name {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: 1.02rem;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+}
+
+.nav-links {
+    display: flex;
+    gap: 1.4rem;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+}
+
+.nav-links a {
+    color: var(--seaglass);
+    transition: color 0.25s ease;
+}
+
+.nav-links a:hover { color: var(--fog); }
+
+/* ------------------------------------------------------------
+   Hero — type directly on the forest, no box
+   ------------------------------------------------------------ */
+
+.hero {
+    position: relative;
+    min-height: 100svh;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+}
+
+.hero-inner {
+    width: min(1060px, calc(100% - 3rem));
+    margin: 0 auto;
+    padding: 7rem 0 8rem;
+}
+
+.hero-name {
+    font-family: var(--display);
+    font-weight: 500;
+    font-size: clamp(3.4rem, 10vw, 7rem);
+    line-height: 1.0;
+    letter-spacing: -0.015em;
+    margin-bottom: 2rem;
+}
+
+.hn-line { display: block; }
+
+.hn-sub {
+    font-weight: 400;
+    color: var(--seaglass);
+}
+
+.lede {
+    font-family: var(--display);
+    font-weight: 400;
+    color: var(--seaglass);
+    font-size: 1.2rem;
+    line-height: 1.55;
+    max-width: 42ch;
+    margin-bottom: 2.6rem;
+}
+
+.lede em { color: var(--gold); }
+
+.cta {
+    display: inline-block;
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 1.1rem;
+    color: var(--salmon);
+    border-bottom: 1px solid rgba(232, 154, 130, 0.4);
+    padding-bottom: 0.15rem;
+    transition: color 0.3s ease, border-color 0.3s ease;
+}
+
+.cta:hover {
+    color: var(--gold);
+    border-color: rgba(214, 226, 174, 0.6);
+}
+
+/* ------------------------------------------------------------
+   Sections — asymmetric editorial grid
+   ------------------------------------------------------------ */
+
+.section {
+    width: min(1060px, calc(100% - 3rem));
+    margin: 0 auto;
+    padding-top: 7rem;
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 1.5rem 4rem;
+    align-items: start;
+}
+
+.section-label {
+    position: sticky;
+    top: 7rem;
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 1.1rem;
+    color: var(--moss);
+    padding-top: 0.7rem;
+    border-top: 1px solid var(--hairline);
+}
+
+.section-title {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(1.7rem, 3.4vw, 2.4rem);
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    margin-bottom: 2.2rem;
+}
+
+.section-title em {
+    font-style: normal;
+    color: var(--seaglass);
+}
+
+/* ------------------------------------------------------------
+   Work — garden beds
+   ------------------------------------------------------------ */
+
+.beds {
+    list-style: none;
+    overflow: hidden;
+}
+
+.beds li + li {
+    border-top: 1px solid var(--hairline);
+}
+
+.bed {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 1.2rem;
+    padding: 1.5rem 2rem;
+    transition: background 0.35s ease, padding-left 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.bed:hover {
+    background: linear-gradient(90deg, rgba(238, 246, 240, 0.06), transparent 70%);
+    padding-left: 2.6rem;
+}
+
+.bed-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.bed-name {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 1.45rem;
+    letter-spacing: -0.005em;
+}
+
+.bed-desc {
+    font-family: var(--display);
+    font-weight: 400;
+    color: var(--seaglass);
+    font-size: 1.02rem;
+    opacity: 0.9;
+}
+
+.bed-arrow {
+    font-family: var(--mono);
+    font-size: 1.05rem;
+    color: var(--moss);
+    transition: transform 0.3s ease, color 0.3s ease;
+}
+
+.bed:hover .bed-arrow {
+    transform: translate(3px, -3px);
+    color: var(--salmon);
+}
+
+/* ------------------------------------------------------------
+   Roots
+   ------------------------------------------------------------ */
+
+.about-body {
+    max-width: 56ch;
+    padding-top: 0.4rem;
+}
+
+.prose-pull {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(1.5rem, 2.8vw, 1.95rem);
+    line-height: 1.4;
+    letter-spacing: -0.005em;
+    margin-bottom: 1.6rem;
+}
+
+.prose-pull em { color: var(--gold); }
+
+.prose-rest {
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: 1.12rem;
+    color: var(--seaglass);
+    max-width: 50ch;
+}
+
+/* ------------------------------------------------------------
+   Contact
+   ------------------------------------------------------------ */
+
+.hello-email {
+    display: inline-block;
+    font-family: var(--display);
+    font-weight: 400;
+    font-size: clamp(1.7rem, 4.5vw, 3rem);
+    letter-spacing: -0.015em;
+    line-height: 1.2;
+    border-bottom: 1px solid rgba(232, 154, 130, 0.45);
+    padding-bottom: 0.2rem;
+    transition: color 0.3s ease, border-color 0.3s ease;
+}
+
+.hello-email em {
+    font-style: normal;
+    color: var(--salmon);
+}
+
+.hello-email:hover {
+    color: var(--salmon);
+    border-color: var(--salmon);
+}
+
+.hello-links {
+    display: flex;
+    gap: 1.8rem;
+    margin-top: 2.4rem;
+}
+
+.chip {
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    color: var(--seaglass);
+    border-bottom: 1px solid var(--hairline);
+    padding-bottom: 0.15rem;
+    transition: color 0.3s ease, border-color 0.3s ease;
+}
+
+.chip:hover {
+    color: var(--salmon);
+    border-color: rgba(232, 154, 130, 0.5);
+}
+
+/* ------------------------------------------------------------
+   Footer
+   ------------------------------------------------------------ */
+
+.footer {
+    margin-top: 8rem;
+    border-top: 1px solid var(--hairline);
+}
+
+.footer-inner {
+    width: min(1060px, calc(100% - 3rem));
+    margin: 0 auto;
+    padding: 2.5rem 0 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    letter-spacing: 0.08em;
+    color: var(--moss);
+}
+
+.footer-fir {
+    font-family: var(--mono);
+    font-size: 0.66rem;
+    line-height: 1.3;
+    white-space: pre;
+    user-select: none;
+    opacity: 0.7;
+    text-align: left;
+}
+
+/* ------------------------------------------------------------
+   Reveal
+   ------------------------------------------------------------ */
+
+.will-reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.will-reveal.revealed {
+    opacity: 1;
+    transform: none;
+}
+
+/* ------------------------------------------------------------
+   Small screens
+   ------------------------------------------------------------ */
+
+@media (max-width: 760px) {
+    .section {
+        grid-template-columns: 1fr;
+        gap: 1.4rem;
+        padding-top: 5rem;
+    }
+    .section-label {
+        position: static;
+        border-top: none;
+        padding-top: 0;
+    }
+    .bed { padding: 1.2rem 1.4rem; }
+    .footer-inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1.5rem;
+    }
+}
