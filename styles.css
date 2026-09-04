@@ -73,6 +73,8 @@ h1 span { color: var(--fern); }
 .intro-copy { margin-top: 1.75rem; max-width: 40ch; color: var(--muted); }
 .intro-copy p:first-child { color: var(--paper); }
 .intro-copy p + p { margin-top: .65rem; }
+.resume-link { display: inline-flex; align-items: baseline; gap: .4rem; margin-top: 1rem; padding-block: .5rem; font-size: .9375rem; }
+.resume-format { color: var(--muted); font-size: .8125rem; }
 .section { scroll-margin-top: 2rem; }
 .work { max-width: 49ch; }
 .work h2 { font-family: var(--display); font-weight: 400; line-height: 1.2; }
