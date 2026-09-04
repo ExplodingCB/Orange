@@ -79,11 +79,13 @@ h1 span { color: var(--fern); }
 .work p { color: var(--muted); }
 .featured-project h2 { font-size: 2.35rem; margin-bottom: .85rem; }
 .featured-project > p { max-width: 36ch; }
-.featured-project .project-note { margin-top: 1rem; max-width: 42ch; }
+.work .project-note { margin-top: 1rem; max-width: 42ch; }
 .text-link { color: var(--paper); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; text-decoration-color: #62745d; }
 .text-link:hover { color: var(--orange); text-decoration-color: currentColor; }
 .secondary-project { margin-top: 2.5rem; }
 .secondary-project h2 { font-size: 1.5rem; margin-bottom: .5rem; }
+.sculptor-project { margin-top: 3rem; }
+.sculptor-project h2 { font-size: 2rem; }
 .project-aside { margin-top: 1.6rem; }
 .contact { padding-block: 4rem 4.5rem; }
 .email {
