@@ -180,13 +180,13 @@ h1 span { color: var(--fern); }
     .hero { padding-block: 2.5rem 3rem; }
     .intro-heading {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) clamp(3rem, 14vw, 4rem);
-        align-items: center;
-        gap: 1rem;
+        grid-template-columns: minmax(0, 1fr);
+        justify-items: start;
+        gap: 1.25rem;
         width: calc(100% + var(--road-space));
     }
     h1 { font-size: clamp(3rem, 12vw, 4rem); line-height: .98; }
-    .portrait { width: 100%; }
+    .portrait { grid-row: 1; width: 80px; height: 80px; object-fit: cover; }
     .intro-copy { margin-top: 1.5rem; }
     .work { max-width: none; }
     .secondary-project h2 { font-size: 1.5rem; }
