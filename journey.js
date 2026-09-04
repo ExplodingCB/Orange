@@ -110,6 +110,15 @@ String.raw`     ^
                 return (seed - 1) / 2147483646;
             };
             if (!j.el || getComputedStyle(j.el).display === 'none') return;
+            // On phones, give the name and portrait the full width before the road starts.
+            const heading = document.querySelector('.intro-heading');
+            if (matchMedia('(max-width: 700px)').matches && heading && j.el.offsetParent) {
+                const headingBottom = heading.getBoundingClientRect().bottom;
+                const parentTop = j.el.offsetParent.getBoundingClientRect().top;
+                j.el.style.top = `${Math.round(headingBottom - parentTop + 24)}px`;
+            } else {
+                j.el.style.removeProperty('top');
+            }
             j.fs = parseFloat(getComputedStyle(j.road).fontSize);
             j.charW = j.fs * 0.6;
             j.lineH = j.fs * 1.15;

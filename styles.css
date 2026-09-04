@@ -171,18 +171,31 @@ h1 span { color: var(--fern); }
     .portrait { width: 80px; }
 }
 @media (max-width: 700px) {
-    .site-shell { width: calc(100% - 2.5rem); max-width: 540px; --road-space: 72px; }
+    .site-shell { width: calc(100% - 2.5rem); max-width: 540px; --road-space: 44px; }
     .nav { min-height: 82px; gap: 1rem; }
     .nav-name { font-size: 1.25rem; }
     .nav-links { gap: 1rem; font-size: .8125rem; }
     .nav-links a { padding-block: .8rem; }
     .page { width: calc(100% - var(--road-space)); }
-    .hero { padding-block: 3.5rem 3rem; }
-    h1 { font-size: clamp(2.1rem, 7.4vw, 3rem); }
-    .intro-heading { gap: .75rem; }
-    .portrait { width: 56px; }
+    .hero { padding-block: 2.5rem 3rem; }
+    .intro-heading {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) clamp(3rem, 14vw, 4rem);
+        align-items: center;
+        gap: 1rem;
+        width: calc(100% + var(--road-space));
+    }
+    h1 { font-size: clamp(3rem, 12vw, 4rem); line-height: .98; }
+    .portrait { width: 100%; }
+    .intro-copy { margin-top: 1.5rem; }
+    .work { max-width: none; }
+    .secondary-project h2 { font-size: 1.5rem; }
+    .featured-project h2, .sculptor-project h2 { font-size: 1.75rem; line-height: 1.2; margin-bottom: .75rem; }
+    .work p { line-height: 1.65; }
+    .work .project-note { margin-top: .8rem; }
+    .secondary-project, .sculptor-project { margin-top: 2.25rem; }
     .contact { padding-block: 3rem 3.25rem; }
-    .journey { top: 110px; bottom: 145px; right: -16px; width: var(--road-space); }
+    .journey { top: 260px; bottom: 145px; right: -16px; width: 52px; }
     .scene { font-size: 8px; }
     .car { font-size: 9px; }
     .car-wrap::before { height: 45px; }
@@ -195,11 +208,9 @@ h1 span { color: var(--fern); }
     .footer-location { flex-basis: 100%; }
 }
 @media (max-width: 380px) {
-    .site-shell { width: calc(100% - 2rem); --road-space: 58px; }
+    .site-shell { width: calc(100% - 2rem); }
     .nav-name { font-size: 1.125rem; }
     .nav-links { gap: .7rem; font-size: .75rem; }
-    .intro-heading { gap: .75rem; }
-    .portrait { width: 48px; }
 }
 @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
