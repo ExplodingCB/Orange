@@ -96,11 +96,10 @@ String.raw`     ^
         };
 
         function roadX(r) {
-            // narrow screens: pull the road in from the edge and calm the curves
             const c = journey.cols;
-            const center = 0.52;
-            const amp = 0.16;
-            return c * center + c * amp * Math.sin(r * 0.05 + journey.phase);
+            const halfRoad = c < 24 ? 3 : 5;
+            const amplitude = Math.max(0, Math.min(c * 0.16, c / 2 - halfRoad - 2));
+            return c * 0.5 + amplitude * Math.sin(r * 0.05 + journey.phase);
         }
 
         function buildJourney() {
@@ -119,6 +118,14 @@ String.raw`     ^
             // Three depth layers: far (misty, blurred), mid, near (sharp, by the road)
             const mkGrid = () => Array.from({ length: j.rows }, () => new Array(j.cols).fill(' '));
             const far = mkGrid(), mid = mkGrid(), near = mkGrid();
+            const road = mkGrid(), markings = mkGrid();
+            const narrow = j.cols < 24;
+            const hw = narrow ? 3 : 5;
+            if (j.rows < 12 || j.cols < 10) {
+                j.carEl.style.visibility = 'hidden';
+                return;
+            }
+            j.carEl.style.visibility = 'visible';
 
             const stamp = (g, t, x0, r0) => {
                 t.forEach((line, i) => {
@@ -146,7 +153,7 @@ String.raw`     ^
 
             // Creeks crossing the page; they get bridged where they meet the road
             const creeks = [];
-            if (j.rows > 90) creeks.push(Math.floor(j.rows * (0.40 + random() * 0.08)));
+            if (j.rows > 55) creeks.push(Math.floor(j.rows * (0.40 + random() * 0.08)));
             if (j.rows > 170) creeks.push(Math.floor(j.rows * (0.72 + random() * 0.08)));
             creeks.forEach(rc => {
                 for (let x = 0; x < j.cols; x++) {
@@ -173,12 +180,12 @@ String.raw`     ^
             const sideTrees = (side) => {
                 let r = 4 + Math.floor(random() * 5);
                 while (r < j.rows - 10) {
-                    const t = random() < 0.45
+                    const t = narrow ? TREES[TREES.length - 1] : random() < 0.45
                         ? BIG_TREES[Math.floor(random() * BIG_TREES.length)]
                         : TREES[Math.floor(random() * TREES.length)];
                     const tw = Math.max(...t.map(l => l.length));
                     const xc = roadX(r + t.length / 2);
-                    const off = 7 + Math.floor(random() * 9);
+                    const off = narrow ? hw + 1 : 7 + Math.floor(random() * 5);
                     const x0 = side > 0 ? Math.round(xc + off) : Math.round(xc - off - tw);
                     stamp(near, t, x0, r);
                     r += Math.ceil(t.length * 0.5) + 1 + Math.floor(random() * 5);
@@ -225,7 +232,6 @@ String.raw`     ^
             }
 
             // Road: clear the corridor in every layer, then draw edges + centerline up close
-            const hw = 5;
             for (let rr = 0; rr < j.rows; rr++) {
                 const xc = roadX(rr);
                 const slope = roadX(rr + 1) - xc;
@@ -234,11 +240,11 @@ String.raw`     ^
                 for (let x = L; x <= R; x++) {
                     if (x >= 0 && x < j.cols) { far[rr][x] = ' '; mid[rr][x] = ' '; near[rr][x] = ' '; }
                 }
-                if (L >= 0 && L < j.cols) near[rr][L] = edge;
-                if (R >= 0 && R < j.cols) near[rr][R] = edge;
-                if (rr % 3 !== 0) {
+                if (L >= 0 && L < j.cols) road[rr][L] = edge;
+                if (R >= 0 && R < j.cols) road[rr][R] = edge;
+                if (rr % 5 < 3) {
                     const cx = Math.round(xc);
-                    if (cx >= 0 && cx < j.cols) near[rr][cx] = ':';
+                    if (cx >= 0 && cx < j.cols) markings[rr][cx] = '|';
                 }
             }
 
@@ -247,14 +253,16 @@ String.raw`     ^
                 const xc = roadX(rc);
                 for (let x = Math.round(xc - hw) - 1; x <= Math.round(xc + hw) + 1; x++) {
                     if (x < 0 || x >= j.cols) continue;
-                    near[rc - 1][x] = '=';
-                    near[rc + 1][x] = '=';
+                    road[rc - 1][x] = '=';
+                    road[rc + 1][x] = '=';
                 }
             });
 
             document.getElementById('scene-far').textContent = far.map(row => row.join('')).join('\n');
             document.getElementById('scene-mid').textContent = mid.map(row => row.join('')).join('\n');
-            j.road.textContent = near.map(row => row.join('')).join('\n');
+            document.getElementById('scene-near').textContent = near.map(row => row.join('')).join('\n');
+            document.getElementById('lane-markings').textContent = markings.map(row => row.join('')).join('\n');
+            j.road.textContent = road.map(row => row.join('')).join('\n');
         }
 
         const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
@@ -263,7 +271,7 @@ String.raw`     ^
         function driveCar() {
             animationFrame = 0;
             const j = journey;
-            if (document.hidden || !j.rows || getComputedStyle(j.el).display === 'none') return;
+            if (document.hidden || j.rows < 12 || j.cols < 10 || getComputedStyle(j.el).display === 'none') return;
             const target = Math.min(j.rows - 8, Math.max(2,
                 (scrollY + innerHeight * 0.45 - j.el.offsetTop) / j.lineH));
             const distance = target - j.cur;
