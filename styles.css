@@ -1,587 +1,172 @@
-/* ============================================================
-   GREENHOUSE — Chase Culbertson
-   Dawn light through a fir canopy, seen through liquid glass.
-   ============================================================ */
-
 :root {
-    --deep:      #06120c;   /* forest floor before dawn */
-    --moss:      #8fbc9c;   /* moss in light */
-    --seaglass:  #b5d4c3;   /* misted glass tint */
-    --fog:       #eef6f0;   /* morning fog / text */
-    --salmon:    #e89a82;   /* the one warm thing */
-    --gold:      #d6e2ae;   /* dawn through the canopy */
-
+    color-scheme: dark;
+    --forest: #101d17;
+    --paper: #e7e9dd;
+    --muted: #a8b5a5;
+    --fern: #bec9af;
+    --orange: #dc9b76;
     --display: 'EB Garamond', Georgia, serif;
-    --body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
-    --mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
-
-    --hairline: rgba(238, 246, 240, 0.12);
+    --body: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --mono: 'IBM Plex Mono', Menlo, monospace;
 }
 
-* { margin: 0; padding: 0; box-sizing: border-box; }
-
-html {
-    scroll-behavior: smooth;
-    overflow-anchor: none;
-}
-
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 2rem; }
 body {
-    position: relative;
-    overflow-anchor: none;
+    margin: 0;
+    background: var(--forest);
+    color: var(--paper);
     font-family: var(--body);
-    background-color: var(--deep);
-    background-image:
-        radial-gradient(90% 60% at 14% -10%, rgba(222, 228, 160, 0.17) 0%, transparent 55%),
-        radial-gradient(70% 55% at 88% 6%, rgba(44, 118, 138, 0.5) 0%, transparent 65%),
-        radial-gradient(60% 50% at 62% 42%, rgba(24, 90, 64, 0.6) 0%, transparent 70%),
-        radial-gradient(55% 45% at 6% 52%, rgba(56, 96, 128, 0.3) 0%, transparent 65%),
-        radial-gradient(75% 50% at 18% 100%, rgba(232, 154, 130, 0.13) 0%, transparent 60%),
-        radial-gradient(60% 45% at 88% 96%, rgba(92, 74, 122, 0.28) 0%, transparent 65%),
-        linear-gradient(to bottom, #0b2416, #071a11 45%, #081521 100%);
-    background-attachment: fixed;
-    color: var(--fog);
-    font-size: 17px;
+    font-size: 1rem;
     line-height: 1.65;
     -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
 }
-
-::selection { background: rgba(143, 188, 156, 0.35); color: var(--fog); }
-
+::selection { background: #455840; color: #fff; }
 a { color: inherit; text-decoration: none; }
-
-em { font-style: italic; }
-
-:focus-visible {
-    outline: 2px solid var(--seaglass);
-    outline-offset: 3px;
-    border-radius: 6px;
-}
-
-/* ------------------------------------------------------------
-   Atmosphere
-   ------------------------------------------------------------ */
-
-.atmosphere {
+a:focus-visible { outline: 2px solid var(--orange); outline-offset: 6px; }
+a:hover { color: var(--orange); }
+p, h1, h2, pre { margin: 0; }
+.skip-link {
     position: fixed;
-    inset: 0;
-    z-index: -1;
-    overflow: hidden;
-    pointer-events: none;
+    top: 1rem;
+    left: 1rem;
+    z-index: 5;
+    padding: .65rem 1rem;
+    background: var(--paper);
+    color: var(--forest);
+    transform: translateY(-200%);
 }
-
-.mist {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(90px);
-}
-
-.mist-a {
-    width: 58vw; height: 58vw;
-    top: -15vw; left: -12vw;
-    background: radial-gradient(circle, rgba(58, 122, 87, 0.55) 0%, transparent 65%);
-    animation: drift-a 46s ease-in-out infinite alternate;
-}
-
-.mist-b {
-    width: 48vw; height: 48vw;
-    top: 24vh; right: -16vw;
-    background: radial-gradient(circle, rgba(36, 112, 136, 0.55) 0%, transparent 65%);
-    animation: drift-b 58s ease-in-out infinite alternate;
-}
-
-.mist-c {
-    width: 30vw; height: 30vw;
-    top: 4vh; left: 30vw;
-    background: radial-gradient(circle, rgba(214, 226, 174, 0.16) 0%, transparent 60%);
-    animation: drift-b 64s ease-in-out infinite alternate-reverse;
-}
-
-.mist-d {
-    width: 40vw; height: 40vw;
-    bottom: -12vw; left: 8vw;
-    background: radial-gradient(circle, rgba(232, 154, 130, 0.13) 0%, transparent 60%);
-    animation: drift-a 70s ease-in-out infinite alternate-reverse;
-}
-
-@keyframes drift-a {
-    from { transform: translate(0, 0) scale(1); }
-    to   { transform: translate(9vw, 6vh) scale(1.15); }
-}
-
-@keyframes drift-b {
-    from { transform: translate(0, 0) scale(1.1); }
-    to   { transform: translate(-8vw, -5vh) scale(0.95); }
-}
-
-.shaft {
-    position: absolute;
-    top: -20vh;
-    width: 16vw;
-    height: 120vh;
-    background: linear-gradient(to bottom, rgba(228, 240, 214, 0.07), transparent 70%);
-    filter: blur(28px);
-    transform: skewX(-14deg);
-}
-
-.shaft-a { left: 20vw; }
-.shaft-b { left: 52vw; width: 8vw; opacity: 0.75; }
-
-@media (prefers-reduced-motion: reduce) {
-    .mist { animation: none; }
-    html { scroll-behavior: auto; }
-}
-
-/* ------------------------------------------------------------
-   Journey: road, big firs, the car — behind the glass
-   ------------------------------------------------------------ */
-
-.journey {
-    position: absolute;
-    inset: 0;
-    z-index: -1;
-    overflow: hidden;
-    pointer-events: none;
-}
-
-.scene {
-    position: absolute;
-    inset: 0;
-    font-family: var(--mono);
-    font-size: 13px;
-    line-height: 1.15;
-    white-space: pre;
-    user-select: none;
-}
-
-.scene-far {
-    color: #92b4c6;
-    opacity: 0.22;
-    filter: blur(1.6px);
-}
-
-.scene-mid {
-    color: var(--moss);
-    opacity: 0.3;
-    filter: blur(0.5px);
-}
-
-.scene-near {
-    color: #b4d49e;
-    opacity: 0.42;
-}
-
-.car-wrap {
-    position: absolute;
-    top: 0;
-    left: 0;
-    will-change: transform;
-}
-
-.car {
-    font-family: var(--mono);
-    font-size: 14px;
-    line-height: 1.1;
-    color: var(--salmon);
-    white-space: pre;
-    user-select: none;
-    text-shadow: 0 0 14px rgba(232, 154, 130, 0.55);
-}
-
-/* headlights, pointing down the road */
-.car-wrap::before {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 52px;
-    height: 70px;
-    background: radial-gradient(55% 65% at 50% 0%, rgba(214, 226, 174, 0.3) 0%, transparent 70%);
-    filter: blur(6px);
-}
-
-@media (max-width: 760px) {
-    .scene { font-size: 10px; }
-    .car { font-size: 11px; }
-}
-
-/* type sitting directly on the forest gets a little fog behind it */
-.hero-inner, .section-title, .section-label, .about-body, .hello-email, .hello-links, .footer-inner {
-    text-shadow: 0 1px 16px rgba(6, 18, 12, 0.9), 0 0 3px rgba(6, 18, 12, 0.7);
-}
-
-/* ------------------------------------------------------------
-   Liquid glass panes
-   ------------------------------------------------------------ */
-
-.pane {
+.skip-link:focus { transform: none; }
+.site-shell {
     position: relative;
-    border-radius: 24px;
-    background: linear-gradient(160deg, rgba(238, 246, 240, 0.10), rgba(238, 246, 240, 0.03));
-    -webkit-backdrop-filter: blur(22px) saturate(170%);
-    backdrop-filter: blur(22px) saturate(170%);
-    border: 1px solid rgba(238, 246, 240, 0.14);
-    box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.22),
-        inset 0 -1px 0 rgba(6, 18, 12, 0.35),
-        0 24px 48px -16px rgba(2, 8, 5, 0.55);
+    max-width: 1120px;
+    width: calc(100% - 7rem);
+    margin-inline: auto;
 }
-
-/* specular bloom on the top-left curve */
-.pane::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: radial-gradient(120% 60% at 18% -8%, rgba(255, 255, 255, 0.14) 0%, transparent 55%);
-    pointer-events: none;
-}
-
-/* ------------------------------------------------------------
-   Nav — the pill stays
-   ------------------------------------------------------------ */
-
 .nav {
-    position: fixed;
-    top: 18px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 10;
-    display: flex;
-    align-items: center;
-    gap: 2.5rem;
-    padding: 0.65rem 1.6rem;
-    border-radius: 999px;
-    max-width: calc(100% - 2rem);
-}
-
-.nav-name {
-    font-family: var(--display);
-    font-weight: 500;
-    font-size: 1.02rem;
-    letter-spacing: 0.01em;
-    white-space: nowrap;
-}
-
-.nav-links {
-    display: flex;
-    gap: 1.4rem;
-    font-family: var(--mono);
-    font-size: 0.78rem;
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-}
-
-.nav-links a {
-    color: var(--seaglass);
-    transition: color 0.25s ease;
-}
-
-.nav-links a:hover { color: var(--fog); }
-
-/* ------------------------------------------------------------
-   Hero — type directly on the forest, no box
-   ------------------------------------------------------------ */
-
-.hero {
     position: relative;
-    min-height: 100svh;
-    display: flex;
-    align-items: center;
-    overflow: hidden;
-}
-
-.hero-inner {
-    width: min(1060px, calc(100% - 3rem));
-    margin: 0 auto;
-    padding: 7rem 0 8rem;
-}
-
-.hero-name {
-    font-family: var(--display);
-    font-weight: 500;
-    font-size: clamp(3.4rem, 10vw, 7rem);
-    line-height: 1.0;
-    letter-spacing: -0.015em;
-    margin-bottom: 2rem;
-}
-
-.hn-line { display: block; }
-
-.hn-sub {
-    font-weight: 400;
-    color: var(--seaglass);
-}
-
-.lede {
-    font-family: var(--display);
-    font-weight: 400;
-    color: var(--seaglass);
-    font-size: 1.2rem;
-    line-height: 1.55;
-    max-width: 42ch;
-    margin-bottom: 2.6rem;
-}
-
-.lede em { color: var(--gold); }
-
-.cta {
-    display: inline-block;
-    font-family: var(--display);
-    font-weight: 400;
-    font-size: 1.1rem;
-    color: var(--salmon);
-    border-bottom: 1px solid rgba(232, 154, 130, 0.4);
-    padding-bottom: 0.15rem;
-    transition: color 0.3s ease, border-color 0.3s ease;
-}
-
-.cta:hover {
-    color: var(--gold);
-    border-color: rgba(214, 226, 174, 0.6);
-}
-
-/* ------------------------------------------------------------
-   Sections — asymmetric editorial grid
-   ------------------------------------------------------------ */
-
-.section {
-    width: min(1060px, calc(100% - 3rem));
-    margin: 0 auto;
-    padding-top: 7rem;
-    display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 1.5rem 4rem;
-    align-items: start;
-}
-
-.section-label {
-    position: sticky;
-    top: 7rem;
-    font-family: var(--display);
-    font-weight: 400;
-    font-size: 1.1rem;
-    color: var(--moss);
-    padding-top: 0.7rem;
-    border-top: 1px solid var(--hairline);
-}
-
-.section-title {
-    font-family: var(--display);
-    font-weight: 400;
-    font-size: clamp(1.7rem, 3.4vw, 2.4rem);
-    letter-spacing: -0.01em;
-    line-height: 1.15;
-    margin-bottom: 2.2rem;
-}
-
-.section-title em {
-    font-style: normal;
-    color: var(--seaglass);
-}
-
-/* ------------------------------------------------------------
-   Work — garden beds
-   ------------------------------------------------------------ */
-
-.beds {
-    list-style: none;
-    overflow: hidden;
-}
-
-.beds li + li {
-    border-top: 1px solid var(--hairline);
-}
-
-.bed {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    gap: 1.2rem;
-    padding: 1.5rem 2rem;
-    transition: background 0.35s ease, padding-left 0.35s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.bed:hover {
-    background: linear-gradient(90deg, rgba(238, 246, 240, 0.06), transparent 70%);
-    padding-left: 2.6rem;
-}
-
-.bed-copy {
-    display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
-}
-
-.bed-name {
-    font-family: var(--display);
-    font-weight: 400;
-    font-size: 1.45rem;
-    letter-spacing: -0.005em;
-}
-
-.bed-desc {
-    font-family: var(--display);
-    font-weight: 400;
-    color: var(--seaglass);
-    font-size: 1.02rem;
-    opacity: 0.9;
-}
-
-.bed-arrow {
-    font-family: var(--mono);
-    font-size: 1.05rem;
-    color: var(--moss);
-    transition: transform 0.3s ease, color 0.3s ease;
-}
-
-.bed:hover .bed-arrow {
-    transform: translate(3px, -3px);
-    color: var(--salmon);
-}
-
-/* ------------------------------------------------------------
-   Roots
-   ------------------------------------------------------------ */
-
-.about-body {
-    max-width: 56ch;
-    padding-top: 0.4rem;
-}
-
-.prose-pull {
-    font-family: var(--display);
-    font-weight: 400;
-    font-size: clamp(1.5rem, 2.8vw, 1.95rem);
-    line-height: 1.4;
-    letter-spacing: -0.005em;
-    margin-bottom: 1.6rem;
-}
-
-.prose-pull em { color: var(--gold); }
-
-.prose-rest {
-    font-family: var(--display);
-    font-weight: 400;
-    font-size: 1.12rem;
-    color: var(--seaglass);
-    max-width: 50ch;
-}
-
-/* ------------------------------------------------------------
-   Contact
-   ------------------------------------------------------------ */
-
-.hello-email {
-    display: inline-block;
-    font-family: var(--display);
-    font-weight: 400;
-    font-size: clamp(1.7rem, 4.5vw, 3rem);
-    letter-spacing: -0.015em;
-    line-height: 1.2;
-    border-bottom: 1px solid rgba(232, 154, 130, 0.45);
-    padding-bottom: 0.2rem;
-    transition: color 0.3s ease, border-color 0.3s ease;
-}
-
-.hello-email em {
-    font-style: normal;
-    color: var(--salmon);
-}
-
-.hello-email:hover {
-    color: var(--salmon);
-    border-color: var(--salmon);
-}
-
-.hello-links {
-    display: flex;
-    gap: 1.8rem;
-    margin-top: 2.4rem;
-}
-
-.chip {
-    font-family: var(--mono);
-    font-size: 0.78rem;
-    letter-spacing: 0.06em;
-    color: var(--seaglass);
-    border-bottom: 1px solid var(--hairline);
-    padding-bottom: 0.15rem;
-    transition: color 0.3s ease, border-color 0.3s ease;
-}
-
-.chip:hover {
-    color: var(--salmon);
-    border-color: rgba(232, 154, 130, 0.5);
-}
-
-/* ------------------------------------------------------------
-   Footer
-   ------------------------------------------------------------ */
-
-.footer {
-    margin-top: 8rem;
-    border-top: 1px solid var(--hairline);
-}
-
-.footer-inner {
-    width: min(1060px, calc(100% - 3rem));
-    margin: 0 auto;
-    padding: 2.5rem 0 3rem;
+    z-index: 1;
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
-    font-family: var(--mono);
-    font-size: 0.74rem;
-    letter-spacing: 0.08em;
-    color: var(--moss);
+    align-items: center;
+    gap: 2rem;
+    min-height: 98px;
 }
+.nav-name { font-family: var(--display); font-size: 1.5rem; white-space: nowrap; }
+.nav-name span { color: var(--orange); }
+.nav-links { display: flex; gap: 1.75rem; font-family: var(--mono); font-size: .875rem; }
+.nav-links a { color: var(--muted); padding-block: .65rem; }
+.nav-links a:hover { color: var(--paper); }
+.page { position: relative; width: 62%; }
+.hero { padding-block: 4.5rem 3.5rem; }
+.intro-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 1.5rem 2.25rem; }
+h1 {
+    font-family: var(--display);
+    font-size: clamp(3rem, 5.4vw, 4.25rem);
+    font-weight: 400;
+    line-height: .98;
+    letter-spacing: -.025em;
+    overflow-wrap: anywhere;
+}
+h1 span { color: var(--fern); }
+.portrait { display: block; width: 96px; height: auto; border-radius: 2px; }
+.intro-copy { margin-top: 1.75rem; max-width: 40ch; color: var(--muted); }
+.intro-copy p:first-child { color: var(--paper); }
+.intro-copy p + p { margin-top: .65rem; }
+.section { scroll-margin-top: 2rem; }
+.work { max-width: 49ch; }
+.work h2 { font-family: var(--display); font-weight: 400; line-height: 1.2; }
+.work p { color: var(--muted); }
+.featured-project h2 { font-size: 2.35rem; margin-bottom: .85rem; }
+.featured-project > p { max-width: 36ch; }
+.featured-project .project-note { margin-top: 1rem; max-width: 42ch; }
+.project-arrow { display: inline-block; color: var(--orange); font-family: var(--body); font-size: 1.125rem; vertical-align: middle; margin-left: .3rem; transition: transform 160ms ease; }
+.featured-project h2 a:hover .project-arrow { transform: translate(3px, -3px); }
+.text-link { color: var(--paper); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 4px; text-decoration-color: #62745d; }
+.text-link:hover { color: var(--orange); text-decoration-color: currentColor; }
+.secondary-project { margin-top: 2.5rem; }
+.secondary-project h2 { font-size: 1.5rem; margin-bottom: .5rem; }
+.project-aside { margin-top: 1.6rem; }
+.contact { padding-block: 4rem 4.5rem; }
+.email {
+    display: inline-block;
+    max-width: 100%;
+    color: var(--orange);
+    font-family: var(--display);
+    font-size: clamp(1.375rem, 2.6vw, 1.875rem);
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 6px;
+    text-decoration-color: #765d46;
+}
+.email:hover { color: var(--paper); text-decoration-color: var(--paper); }
+.email span { display: inline-block; margin-left: .25rem; font-size: 1.125rem; }
+.social-links { display: flex; gap: 1.75rem; margin-top: 1.25rem; font-family: var(--mono); font-size: .875rem; color: var(--muted); }
+.social-links a { padding-block: .5rem; }
+.footer { display: flex; align-items: center; gap: 2rem; padding-block: 1.5rem 2rem; font-family: var(--mono); font-size: .75rem; color: var(--muted); }
+.footer-location { margin-left: auto; }
+.back-top { padding-block: .5rem; }
 
-.footer-fir {
-    font-family: var(--mono);
-    font-size: 0.66rem;
-    line-height: 1.3;
-    white-space: pre;
+/* The original ASCII forest stays in its own margin, away from the text. */
+.journey {
+    position: absolute;
+    top: 135px;
+    bottom: 145px;
+    right: -18px;
+    width: 33%;
+    overflow: hidden;
+    pointer-events: none;
     user-select: none;
-    opacity: 0.7;
-    text-align: left;
+    -webkit-mask-image: linear-gradient(transparent, black 5%, black 93%, transparent);
+    mask-image: linear-gradient(transparent, black 5%, black 93%, transparent);
 }
+.scene { position: absolute; inset: 0; font-family: var(--mono); font-size: 12px; line-height: 1.15; white-space: pre; }
+.scene-far { color: #354a3b; }
+.scene-mid { color: #4f6550; }
+.scene-near { color: #7d916c; opacity: .8; }
+.car-wrap { position: absolute; top: 0; left: 0; }
+.car { font-family: var(--mono); font-size: 12px; line-height: 1.1; color: var(--orange); white-space: pre; }
 
-/* ------------------------------------------------------------
-   Reveal
-   ------------------------------------------------------------ */
-
-.will-reveal {
-    opacity: 0;
-    transform: translateY(18px);
-    transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+@media (min-width: 1500px) {
+    .site-shell { max-width: 1160px; }
+    .page { width: 60%; }
+    .hero { padding-top: 5rem; }
 }
-
-.will-reveal.revealed {
-    opacity: 1;
-    transform: none;
+@media (max-width: 1000px) {
+    .site-shell { width: calc(100% - 4rem); }
+    .page { width: 65%; }
+    .journey { width: 29%; right: -10px; }
+    .scene { font-size: 10px; }
+    .car { font-size: 10px; }
+    .intro-heading { gap: 1.25rem; }
+    .portrait { width: 80px; }
 }
-
-/* ------------------------------------------------------------
-   Small screens
-   ------------------------------------------------------------ */
-
-@media (max-width: 760px) {
-    .section {
-        grid-template-columns: 1fr;
-        gap: 1.4rem;
-        padding-top: 5rem;
-    }
-    .section-label {
-        position: static;
-        border-top: none;
-        padding-top: 0;
-    }
-    .bed { padding: 1.2rem 1.4rem; }
-    .footer-inner {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1.5rem;
-    }
+@media (max-width: 700px) {
+    .site-shell { width: calc(100% - 3rem); max-width: 540px; }
+    .nav { min-height: 82px; gap: 1rem; }
+    .nav-name { font-size: 1.25rem; }
+    .nav-links { gap: 1rem; font-size: .8125rem; }
+    .nav-links a { padding-block: .8rem; }
+    .page { width: 100%; }
+    .hero { padding-block: 3.5rem 3rem; }
+    h1 { font-size: clamp(2.7rem, 9.5vw, 3.5rem); }
+    .contact { padding-block: 3rem 3.25rem; }
+    .journey { display: none; }
+    .footer { flex-wrap: wrap; gap: .5rem 1.5rem; }
+    .footer-location { margin-left: 0; }
+    .back-top { margin-left: auto; }
+    .footer-location { flex-basis: 100%; }
+}
+@media (max-width: 380px) {
+    .site-shell { width: calc(100% - 2rem); }
+    .nav-name { font-size: 1.125rem; }
+    .nav-links { gap: .7rem; font-size: .75rem; }
+    .intro-heading { gap: 1rem; }
+    .portrait { width: 64px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .project-arrow { transition: none; }
 }
