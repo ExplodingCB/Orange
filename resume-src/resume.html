@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<!--
+  Source for assets/chase-culbertson-resume.pdf. Rebuild with:
+
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless \
+    --disable-gpu --no-pdf-header-footer \
+    --print-to-pdf=../assets/chase-culbertson-resume.pdf resume.html
+
+  Sizes are tuned so the whole thing lands on one letter page. If you add a
+  bullet and it spills to page two, shave h2 margin-top / .entry margin-top.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>William "Chase" Culbertson - Resume</title>
+<style>
+  @page { size: letter; margin: 36pt; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    color: #000;
+    font-family: Arial, Helvetica, "Liberation Sans", sans-serif;
+    font-size: 10pt;
+    line-height: 1.275;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1 {
+    margin: 0;
+    font-size: 19.2pt;
+    line-height: 1.12;
+    font-weight: 700;
+  }
+  .contact {
+    margin-top: 2.5pt;
+    font-size: 9.56pt;
+    line-height: 1.275;
+  }
+  .summary { margin-top: 6.5pt; }
+
+  h2 {
+    margin: 7.4pt 0 0;
+    padding-bottom: 2.2pt;
+    border-bottom: 0.75pt solid #000;
+    font-size: 10.3pt;
+    line-height: 1.12;
+    font-weight: 700;
+    letter-spacing: 0.9pt;
+  }
+  h2 + .entry { margin-top: 4.7pt; }
+
+  .entry { margin-top: 4.7pt; }
+  .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12pt;
+  }
+  .row .right {
+    font-weight: 700;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .role { font-weight: 700; }
+  .org { font-style: italic; }
+
+  ul {
+    margin: 1pt 0 0;
+    padding-left: 14.3pt;
+  }
+  li { margin: 0; padding-left: 0.6pt; }
+
+  .skills { margin-top: 4.7pt; }
+  .skills p { margin: 0 0 2.2pt; }
+  .skills p:last-child { margin-bottom: 0; }
+  .skills b { font-weight: 700; }
+
+  .awards { margin-top: 4.7pt; }
+  .awards p { margin: 0 0 1.5pt; }
+  .awards p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+
+  <h1>William "Chase" Culbertson</h1>
+  <div class="contact">West Lafayette, IN | wculbert@purdue.edu | explodingcb.com | linkedin.com/in/chase-culbertson | github.com/Sculptor-AI</div>
+  <p class="summary">Computer Engineering student with two years running production LLM infrastructure on bare metal. Lead engineer on a shipped iOS app and Safari extension, and co-founder of an on-prem inference platform serving 600+ users.</p>
+
+  <h2>EDUCATION</h2>
+  <div class="entry">
+    <div class="row"><span class="role">Purdue University</span><span class="right">Aug 2026 - May 2030 (expected)</span></div>
+    <div class="row"><span class="org">B.S. in Computer Engineering. Purdue Presidential Scholarship recipient</span><span class="right">West Lafayette, IN</span></div>
+  </div>
+  <div class="entry">
+    <div class="row"><span class="role">Lakeside School</span><span class="right">Graduated May 2026</span></div>
+    <div class="row"><span class="org">High School Diploma. ACT: 34</span><span class="right">Seattle, WA</span></div>
+  </div>
+
+  <h2>EXPERIENCE</h2>
+  <div class="entry">
+    <div class="row"><span class="role">Lead Software Engineer</span><span class="right">Jun 2026 - Present</span></div>
+    <div class="row"><span class="org">Silk Shopping, AI shopping assistant (silk-shopping.com)</span><span class="right">Remote</span></div>
+    <ul>
+      <li>Shipped the Silk iOS app and Safari extension to the Apple App Store; own all app, web, and backend development.</li>
+      <li>Engineered barcode scanning, AI product scanning, and shopping-list features in Swift/SwiftUI on a Flask backend.</li>
+      <li>Developed the React web app and the full Safari extension, plus macOS support for the app.</li>
+    </ul>
+  </div>
+  <div class="entry">
+    <div class="row"><span class="role">Co-Founder and Backend Lead</span><span class="right">Jun 2024 - Jun 2026</span></div>
+    <div class="row"><span class="org">Project Andromeda, on-prem LLM inference platform at Lakeside School</span><span class="right">Seattle, WA</span></div>
+    <ul>
+      <li>Secured a $12,000 GPU budget from the Head of School over a subscription path priced near $600K/year.</li>
+      <li>Built the backend: multi-model routing, per-user auth, usage analytics, WolframAlpha and citation-lookup tools.</li>
+      <li>Scaled a phased rollout from 25 pilot accounts to 600+ users, doubling every three weeks with capacity monitoring.</li>
+      <li>Fine-tuned models to course rubrics, including an essay-feedback model built and piloted with an English teacher.</li>
+      <li>Migrated off OpenWebUI to a custom React/Node stack after hitting limits in RAG quality and per-group permissions.</li>
+    </ul>
+  </div>
+  <div class="entry">
+    <div class="row"><span class="role">Researcher</span><span class="right">2025 - Present</span></div>
+    <div class="row"><span class="org">Google TPU Research Cloud</span><span class="right">Remote</span></div>
+    <ul>
+      <li>Training a diffusion language model in JAX/XLA on granted TPU capacity, based on DeepMind's DiffusionGemma.</li>
+    </ul>
+  </div>
+  <div class="entry">
+    <div class="row"><span class="role">Co-Founder and Lead Model Developer</span><span class="right">2023 - Present</span></div>
+    <div class="row"><span class="org">SculptorAI, open-source AI research group (sculptorai.org, github.com/Sculptor-AI)</span><span class="right">Remote</span></div>
+    <ul>
+      <li>Released the Ursa model family on Hugging Face.</li>
+      <li>Maintain aiportal, the MIT-licensed multi-model chat platform behind Andromeda, as lead developer (~470 commits).</li>
+    </ul>
+  </div>
+  <div class="entry">
+    <div class="row"><span class="role">Infrastructure Intern</span><span class="right">Summers 2022 - 2025</span></div>
+    <div class="row"><span class="org">Lakeside School Technology Department</span><span class="right">Seattle, WA</span></div>
+    <ul>
+      <li>Deployed campus devices and printer infrastructure; laid the groundwork for the school's AI access program.</li>
+    </ul>
+  </div>
+
+  <h2>SKILLS</h2>
+  <div class="skills">
+    <p><b>Infrastructure:</b> Linux, Docker, on-prem GPU servers, networking, vLLM, Ollama, TPU/XLA</p>
+    <p><b>Machine Learning:</b> PyTorch, JAX, Hugging Face Transformers, fine-tuning, distillation, RAG, evaluation</p>
+    <p><b>Software:</b> Swift, SwiftUI, Python, Flask, JavaScript/Node, React, C++, Java, SQL, PostgreSQL, MongoDB, Git</p>
+    <p><b>Platforms:</b> iOS and macOS development, Safari extensions, App Store publishing</p>
+    <p><b>Languages:</b> Spanish (conversational)</p>
+  </div>
+
+  <h2>AWARDS AND ACTIVITIES</h2>
+  <div class="awards">
+    <div class="row"><span><b>COMMA_HACK 7, Participant</b>, comma.ai, San Diego, CA</span><span class="right">Sep 2026</span></div>
+    <p><b>Eagle Scout with three palms</b>, Boy Scouts of America. Eagle project: scam-awareness and tech training for seniors.</p>
+  </div>
+
+  <h2>PRESS</h2>
+  <div class="entry">
+    <ul>
+      <li>"The Andromeda Project." Lakeside Magazine, Spring/Summer 2025, pp. 20-21 (feature).</li>
+      <li>"A Follow-Up on Andromeda AI." Tatler, 2025.</li>
+      <li>"AI Enters the Classroom: Grotto Interns Pioneer Lakeside's First AI." Tatler, 2024.</li>
+    </ul>
+  </div>
+
+</body>
+</html>
