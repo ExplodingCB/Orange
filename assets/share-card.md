@@ -23,3 +23,7 @@ Avoid: Glass, panels, pills, frames, borders, arrows, badges, generic tech icons
 - [Open Graph protocol](https://ogp.me/)
 - [Apple: Create rich previews for Messages](https://developer.apple.com/documentation/technotes/tn3156-create-rich-previews-for-messages/)
 - [Google: Profile page structured data](https://developers.google.com/search/docs/appearance/structured-data/profile-page)
+
+## ChApp Store cards
+
+The store and each app page under `/apps/` have their own 1200 x 630 card in `assets/apps/share/`. Those are rendered from `share-src/app-card.html` rather than generated; the comment at the top of that file has the command. The same versioned-filename rule applies.

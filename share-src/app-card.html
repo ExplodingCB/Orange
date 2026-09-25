@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<!--
+  Source for the ChApp Store link-preview images in assets/apps/share/.
+  One card per app, picked with ?app=<id>; no ?app renders the store's card.
+
+  Render each card at 1200 x 630 (2x), e.g. on Windows:
+
+    msedge --headless=new --hide-scrollbars --window-size=1200,630 \
+      --force-device-scale-factor=2 --virtual-time-budget=3000 \
+      --screenshot=mewp.png "file:///D:/Projects/Orange/share-src/app-card.html?app=mewp"
+
+  or on a Mac, the same flags with
+  "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome".
+
+  Then save as a JPEG under a new versioned name (mewp-v2.jpg) and point the
+  og:image and twitter:image tags in apps/<id>/index.html at it, so preview
+  caches pick up the change.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ChApp Store card</title>
+<style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+    body {
+        position: relative;
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI Variable Display', 'Segoe UI', system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        background: var(--bg);
+        color: var(--fg);
+    }
+    img { display: block; }
+
+    /* App cards */
+    .copy { position: absolute; left: 76px; top: 72px; bottom: 64px; width: 540px; display: flex; flex-direction: column; }
+    .icon { width: 184px; height: 184px; margin-left: -14px; }
+    .name { margin: 22px 0 0; font-size: 92px; font-weight: 700; letter-spacing: -.035em; line-height: 1; }
+    .sub { margin: 16px 0 0; font-size: 38px; font-weight: 500; letter-spacing: -.015em; line-height: 1.2; color: var(--fg-2); }
+    .foot { display: flex; align-items: center; gap: 14px; margin-top: auto; font-size: 27px; font-weight: 600; letter-spacing: -.01em; }
+    .foot img { width: 44px; height: 44px; }
+    .foot span { color: var(--fg-2); font-weight: 500; }
+    .shot { position: absolute; border-radius: 14px; box-shadow: 0 30px 70px #00000080; }
+
+    /* Store card */
+    .store { --bg: #f5f5f7; --fg: #1d1d1f; --fg-2: #6e6e73; }
+    .store .brand { position: absolute; left: 80px; top: 84px; display: flex; align-items: center; gap: 26px; }
+    .store .brand img { width: 112px; height: 112px; }
+    .store .brand h1 { margin: 0; font-size: 104px; font-weight: 700; letter-spacing: -.04em; line-height: 1; }
+    .store .tagline { position: absolute; left: 84px; top: 238px; margin: 0; font-size: 42px; font-weight: 500; letter-spacing: -.015em; color: var(--fg-2); }
+    .store .icons { position: absolute; left: 62px; bottom: 60px; display: flex; gap: 26px; }
+    .store .icons img { width: 190px; height: 190px; }
+</style>
+</head>
+<body>
+<script>
+    const A = '../assets/apps/';
+    const LOGO = A + 'chase-logo.png';
+    const APPS = {
+        mewp: {
+            name: 'Mewp', sub: 'A free, native Mac cleaner', platform: 'Mac',
+            bg: '#1b1e2c', icon: 'mewp-icon.png',
+            shot: { src: 'mewp-space-map.webp', left: 610, top: 92, width: 760 }
+        },
+        'tv-remote': {
+            name: 'TV Remote', sub: 'A Siri Remote for your Mac', platform: 'Mac',
+            bg: '#2a2a2c', icon: 'tv-remote-icon.png',
+            shot: { src: 'tv-remote-shot.png', left: 760, top: -250, width: 290 }
+        },
+        tempmanager: {
+            name: 'tempmanager', sub: 'Temperatures in your tray', platform: 'Windows',
+            bg: '#2b1f1e', icon: 'tempmanager-icon.png',
+            shot: { src: 'tempmanager-shot.png', left: 690, top: 104, width: 440 }
+        },
+        termloft: {
+            name: 'Termloft', sub: 'Your college workspace', platform: 'Web',
+            bg: '#18382c', icon: 'termloft-icon.svg',
+            shot: { src: 'termloft-home.webp', left: 610, top: 118, width: 760 }
+        }
+    };
+
+    const id = new URLSearchParams(location.search).get('app');
+    const app = APPS[id];
+
+    if (app) {
+        document.body.style.setProperty('--bg', app.bg);
+        document.body.style.setProperty('--fg', '#ffffff');
+        document.body.style.setProperty('--fg-2', '#ffffffb3');
+        const s = app.shot;
+        document.body.innerHTML = `
+            <img class="shot" src="${A}${s.src}" alt="" style="left:${s.left}px;top:${s.top}px;width:${s.width}px">
+            <div class="copy">
+                <img class="icon" src="${A}${app.icon}" alt="">
+                <h1 class="name">${app.name}</h1>
+                <p class="sub">${app.sub}</p>
+                <div class="foot"><img src="${LOGO}" alt="">ChApp Store <span>&middot; ${app.platform}</span></div>
+            </div>`;
+    } else {
+        document.body.className = 'store';
+        const icons = Object.values(APPS).map(a => `<img src="${A}${a.icon}" alt="">`).join('');
+        document.body.innerHTML = `
+            <div class="brand"><img src="${LOGO}" alt=""><h1>ChApp Store</h1></div>
+            <p class="tagline">Free apps for Mac, Windows, and the web.</p>
+            <div class="icons">${icons}</div>`;
+    }
+</script>
+</body>
+</html>

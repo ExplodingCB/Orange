@@ -335,3 +335,5 @@ code { font-family: var(--mono); font-size: .88em; overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: reduce) {
     * { transition: none !important; scroll-behavior: auto !important; }
 }
+
+button.text-button { padding: 0; border: 0; background: none; cursor: pointer; }
