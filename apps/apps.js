@@ -135,6 +135,31 @@
             ],
             compatibility: 'Any modern browser',
             category: 'Utilities'
+        },
+        {
+            id: 'betrcooking',
+            url: 'https://betrcooking.com/',
+            name: 'BetrCooking',
+            subtitle: 'The family recipe book',
+            platform: 'web',
+            kicker: 'On the web',
+            headline: 'A family recipe book you can actually cook from',
+            feature: { src: 'betrcooking-recipe.webp', width: 1200, height: 750, bg: '#1b4332', w: '86%', top: '11%' },
+            screenshots: [
+                { src: 'betrcooking-home.webp', width: 1200, height: 750, alt: 'The BetrCooking recipe index, with the recipe of the day and recipes grouped by category' },
+                { src: 'betrcooking-recipe.webp', width: 1200, height: 750, alt: 'A chicken stew recipe with scale buttons, cook mode, and an ingredient checklist' }
+            ],
+            about: [
+                'Our family’s recipes in one place, from Grandma’s bread to the holiday cocktails. Search by name or ingredient, browse by category, or hit Surprise me when nobody can pick dinner.',
+                'Every recipe scales, checks off as you go, and has a cook mode that keeps your screen awake. Anyone in the family can make an account to rate, comment, and add recipes, or import one straight from a link.'
+            ],
+            info: [
+                ['Price', 'Free', 'No ads'],
+                ['Runs in', 'Browser', 'Any device'],
+                ['Category', 'Food & Drink', 'Web']
+            ],
+            compatibility: 'Any modern browser',
+            category: 'Food & Drink'
         }
     ];
 
