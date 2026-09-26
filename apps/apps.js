@@ -160,6 +160,32 @@
             ],
             compatibility: 'Any modern browser',
             category: 'Food & Drink'
+        },
+        {
+            id: 'tabletop-tyrant',
+            url: 'https://explodingcb.com/play/tabletop-tyrant/',
+            name: 'Tabletop Tyrant',
+            subtitle: 'Wreck a tiny village on your desk',
+            platform: 'web',
+            kicker: 'New game',
+            headline: 'A tiny village on your desk, and your hands are the weather',
+            feature: { src: 'tabletop-tyrant-domain.webp', width: 1200, height: 750, bg: '#101d17', w: '86%', top: '11%' },
+            screenshots: [
+                { src: 'tabletop-tyrant-hero.webp', width: 1200, height: 750, alt: 'The start screen, with a little village turning slowly beside the title' },
+                { src: 'tabletop-tyrant-play.webp', width: 1200, height: 750, alt: 'A tornado tearing through the village while a meteor comes in, during a 60-hit combo' },
+                { src: 'tabletop-tyrant-domain.webp', width: 1200, height: 750, alt: 'Domain Expansion: a black hole opens over the village in a starfield void' }
+            ],
+            about: [
+                'Point your laptop’s camera at the table in front of you and a little village builds itself across the desk. MediaPipe tracks your hands in 3D, so you can press houses flat, sweep the board clear, slap the table for an earthquake, or pinch a villager and throw them.',
+                'Wrecking things fills a power meter, and quick chains multiply it. Spend half a meter on a tornado you steer with your finger, or fill it and cross your fingers for Domain Expansion. It all runs in your browser, and the video never leaves your computer. No camera? It plays with a mouse too.'
+            ],
+            info: [
+                ['Price', 'Free', 'No ads'],
+                ['Runs in', 'Browser', 'Webcam or mouse'],
+                ['Category', 'Games', 'Web']
+            ],
+            compatibility: 'Chrome or Edge on a laptop with a webcam, or any browser with a mouse',
+            category: 'Games'
         }
     ];
 

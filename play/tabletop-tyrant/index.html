@@ -1,0 +1,2001 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Tabletop Tyrant</title>
+<meta name="description" content="A tiny village settles on your real desk. Your webcam watches your hands, and you decide what happens to it.">
+<meta name="author" content="Chase Culbertson">
+<meta name="theme-color" content="#101d17">
+<link rel="canonical" href="https://explodingcb.com/play/tabletop-tyrant/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ChApp Store">
+<meta property="og:title" content="Tabletop Tyrant">
+<meta property="og:description" content="A tiny village settles on your real desk. Your webcam watches your hands, and you decide what happens to it.">
+<meta property="og:url" content="https://explodingcb.com/play/tabletop-tyrant/">
+<meta property="og:image" content="https://explodingcb.com/assets/apps/share/tabletop-tyrant-v1.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:creator" content="@ExplodingCB">
+<meta name="twitter:image" content="https://explodingcb.com/assets/apps/share/tabletop-tyrant-v1.jpg">
+<link rel="icon" href="/assets/apps/chase-logo.png" type="image/png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400;1,500&family=Noto+Serif+JP:wght@700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --forest: #101d17; --plate: rgba(16, 29, 23, .84); --paper: #e7e9dd; --moss: #a8b5a5; --fern: #bec9af;
+    --ember: #dc9b76; --void: #b9a6ff; --line: rgba(231, 233, 221, .16);
+    --serif: 'EB Garamond', Georgia, serif; --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: var(--forest); color: var(--paper); font-family: var(--sans); font-size: 15px; -webkit-font-smoothing: antialiased; }
+  button, select { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--ember); outline-offset: 3px; }
+  #stage { position: fixed; }
+  #stage.mirror { transform: scaleX(-1); }
+  #stage > * { position: absolute; inset: 0; width: 100%; height: 100%; }
+  #video { object-fit: fill; }
+  #fx, #calibCanvas, #void { pointer-events: none; }
+  #flash { position: fixed; inset: 0; pointer-events: none; background: #fff; opacity: 0; }
+  .hidden { display: none !important; }
+  body.intro .hud { display: none; }
+
+  /* heads-up display: quiet text over the camera, one tray at the bottom */
+  .hud { position: fixed; pointer-events: none; text-shadow: 0 1px 12px rgba(0, 0, 0, .55); }
+  #stats { top: 18px; left: 20px; line-height: 1.35; }
+  #stats .title { font: 400 24px/1.1 var(--serif); margin: 0 0 6px; color: var(--paper); }
+  #stats div { font-size: 13px; color: var(--moss); }
+  #stats b { font: 500 17px var(--serif); color: var(--paper); margin-right: 4px; font-variant-numeric: oldstyle-nums; }
+  #gesture { top: 18px; right: 20px; text-align: right; font-size: 13px; line-height: 1.4; }
+  #gesture small { display: block; font-size: 12px; color: var(--moss); }
+  #shout { position: fixed; top: 30%; left: 0; right: 0; text-align: center; pointer-events: none; opacity: 0;
+    font: italic 400 clamp(40px, 6.5vw, 88px)/1 var(--serif); color: var(--paper); text-shadow: 0 2px 24px rgba(0, 0, 0, .6); }
+
+  .plate { background: var(--plate); border: 1px solid var(--line); border-radius: 14px; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); text-shadow: none; }
+  #abilities { bottom: 18px; left: 50%; transform: translateX(-50%); width: min(560px, calc(100vw - 32px)); text-align: center; }
+  #hint { min-height: 1.4em; font-size: 13px; margin-bottom: 4px; transition: opacity .2s; }
+  #combo { font: italic 400 26px/1.2 var(--serif); opacity: 0; transition: opacity .2s; margin-bottom: 8px; }
+  #combo.on { opacity: 1; }
+  #comboX { color: var(--ember); margin-left: 6px; font-style: normal; font-size: 20px; }
+  .cbar { height: 1px; background: var(--line); width: 140px; margin: 4px auto 0; }
+  #comboBar { height: 100%; width: 0; background: var(--paper); }
+  .tray { display: grid; grid-template-columns: repeat(4, 1fr); overflow: hidden; }
+  .slot { padding: 12px 6px 10px; color: var(--moss); transition: color .2s; }
+  .slot + .slot { border-left: 1px solid var(--line); }
+  .slot.ready { color: var(--paper); }
+  .ring { width: 44px; height: 44px; display: block; margin: 0 auto 6px; position: relative; }
+  .ring svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .ring .track { fill: none; stroke: var(--line); stroke-width: 1.5; }
+  .ring .prog { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-dasharray: 100; stroke-linecap: round; transform: rotate(-90deg); transform-origin: 22px 22px; }
+  .ring .icon { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .slot.ready .prog { stroke: var(--ember); }
+  #slDomain.ready { color: var(--void); }
+  #slDomain.ready .prog { stroke: var(--void); }
+  .slot b { display: block; font-weight: 500; font-size: 13px; }
+  .slot small { display: block; font-size: 11px; color: var(--moss); margin-top: 1px; }
+  .meter { display: flex; align-items: center; gap: 12px; margin-top: 10px; font-size: 12px; color: var(--moss); }
+  .meter .line { position: relative; flex: 1; height: 3px; background: var(--line); border-radius: 2px; }
+  #meterFill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--ember); border-radius: 2px; transition: width .15s, background .3s; }
+  .meter .notch { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: var(--moss); }
+  #meterPct { font: 500 16px var(--serif); color: var(--paper); min-width: 3ch; text-align: right; }
+  #abilities.full #meterFill { background: var(--void); }
+
+  /* panels */
+  .panel { position: fixed; padding: 18px 20px; font-size: 14px; line-height: 1.5; }
+  .panel h2 { font: 400 22px/1.2 var(--serif); margin: 0 0 6px; }
+  .panel p { margin: 0 0 12px; color: var(--moss); }
+  .panel p b { color: var(--paper); font-weight: 500; }
+  .btn { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: 8px 16px; cursor: pointer; }
+  .btn:hover { border-color: var(--moss); }
+  .btn.primary { background: var(--ember); border-color: var(--ember); color: var(--forest); font-weight: 600; }
+  .btn.primary:hover { background: #e6ab89; }
+  .btn:disabled { opacity: .4; cursor: default; }
+  .btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  #place { top: 18px; left: 50%; transform: translateX(-50%); width: min(460px, calc(100vw - 32px)); z-index: 5; }
+  .bar { height: 2px; background: var(--line); margin: 4px 0 10px; }
+  .bar > div { height: 100%; width: 0; background: var(--ember); transition: width .15s; }
+  #placeHint { min-height: 1.4em; font-size: 13px; margin-bottom: 12px; }
+  .handle { position: absolute; inset: auto; width: 28px !important; height: 28px !important; margin: -14px 0 0 -14px; border-radius: 50%; border: 2px solid var(--paper); background: rgba(220, 155, 118, .45); cursor: grab; touch-action: none; z-index: 3; }
+  #settingsBtn { position: fixed; bottom: 18px; right: 20px; background: var(--plate); backdrop-filter: blur(10px); }
+  #settings { bottom: 66px; right: 20px; width: 290px; }
+  #settings label { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 8px 0; }
+  #settings input[type=range] { width: 130px; accent-color: var(--ember); }
+  #settings input[type=checkbox] { accent-color: var(--ember); width: 16px; height: 16px; }
+  #settings select { background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 3px 6px; max-width: 150px; }
+  #settings .note { font-size: 12px; color: var(--moss); }
+  #settings .btns { margin-top: 12px; }
+  #legend { top: 132px; left: 20px; width: 330px; pointer-events: none; transition: opacity .8s; font-size: 13px; }
+  #legend.gone { opacity: 0; }
+  #legend dl { margin: 8px 0 0; display: grid; grid-template-columns: 1fr auto; gap: 5px 14px; }
+  #legend dt { color: var(--paper); }
+  #legend dd { margin: 0; color: var(--moss); text-align: right; }
+  #legend .foot { margin: 10px 0 0; font-size: 12px; }
+
+  /* domain expansion title */
+  #domainTitle { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; opacity: 0; transition: opacity .6s; z-index: 4; text-align: center; color: #eef1ff; }
+  #domainTitle.on { opacity: 1; }
+  #domainTitle .k1 { font: 700 clamp(20px, 3vw, 34px) 'Noto Serif JP', serif; letter-spacing: .4em; }
+  #domainTitle .en1 { font: italic 400 clamp(18px, 2.2vw, 26px) var(--serif); margin-top: 4px; opacity: .85; }
+  #domainTitle .k2 { font: 700 clamp(56px, 11vw, 150px)/1.1 'Noto Serif JP', serif; margin-top: 22px; text-shadow: 0 0 60px rgba(185, 166, 255, .55); opacity: 0; transform: scale(1.25); transition: opacity .7s, transform .9s cubic-bezier(.2, .8, .2, 1); }
+  #domainTitle .en2 { font: 400 clamp(22px, 3vw, 36px) var(--serif); letter-spacing: .12em; opacity: 0; transition: opacity .8s .25s; }
+  #domainTitle.void .k2 { opacity: 1; transform: none; }
+  #domainTitle.void .en2 { opacity: .9; }
+
+  /* start screen: the live village turns on the right, the words sit on the left */
+  #start { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; padding: 0 clamp(20px, 7vw, 112px);
+    background: linear-gradient(90deg, var(--forest) 0%, rgba(16, 29, 23, .96) 34%, rgba(16, 29, 23, .55) 58%, rgba(16, 29, 23, 0) 78%); }
+  #start .col { max-width: 520px; }
+  #start .home { position: absolute; top: 26px; left: clamp(20px, 7vw, 112px); font: 400 20px var(--serif); color: var(--moss); text-decoration: none; }
+  #start .home:hover { color: var(--paper); }
+  #start h1 { font: 400 clamp(56px, 8.5vw, 116px)/.92 var(--serif); margin: 0 0 22px; letter-spacing: -.01em; }
+  #start .lede { font: 400 21px/1.45 var(--serif); margin: 0 0 22px; color: var(--paper); }
+  #start ol { margin: 0 0 28px; padding-left: 1.3em; color: var(--moss); line-height: 1.55; }
+  #start li { padding-left: 4px; margin-bottom: 4px; }
+  #start li::marker { font-family: var(--serif); color: var(--ember); }
+  #start .btns { align-items: center; gap: 18px; }
+  #start .btn.primary { padding: 12px 24px; font-size: 16px; }
+  #start .link { background: none; border: 0; padding: 0; color: var(--moss); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+  #start .link:hover { color: var(--paper); }
+  #start .fine { margin: 26px 0 0; font-size: 13px; color: var(--moss); line-height: 1.5; max-width: 460px; }
+  #status { min-height: 1.4em; margin-top: 12px; font-size: 14px; color: var(--ember); }
+
+  @media (max-width: 720px) {
+    #start { background: linear-gradient(180deg, rgba(16, 29, 23, 0) 0%, rgba(16, 29, 23, .7) 24%, var(--forest) 34%); align-items: flex-end; padding-bottom: 32px; }
+    #start .fine { margin-top: 18px; }
+    #start h1 { font-size: 56px; margin-bottom: 14px; }
+    #start .lede { font-size: 18px; }
+    #legend { display: none; }
+    .slot small { display: none; }
+    #combo { font-size: 20px; }
+  }
+  @media (prefers-reduced-motion: reduce) { #domainTitle .k2 { transition: opacity .7s; transform: none; } }
+</style>
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body class="intro">
+<div id="stage">
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="void"></canvas>
+  <canvas id="three"></canvas>
+  <canvas id="fx"></canvas>
+  <canvas id="calibCanvas"></canvas>
+</div>
+<div id="flash"></div>
+<div id="shout" role="status" aria-live="polite"></div>
+<div id="domainTitle" aria-hidden="true">
+  <div class="k1">領域展開</div><div class="en1">Domain Expansion</div>
+  <div class="k2">無量空処</div><div class="en2">Infinite Void</div>
+</div>
+
+<div id="stats" class="hud">
+  <p class="title">Tabletop Tyrant</p>
+  <div><b id="pop">0</b>villagers</div>
+  <div><b id="bld">0</b>buildings</div>
+  <div><b id="score">0</b>ruin</div>
+</div>
+<div id="gesture" class="hud"></div>
+
+<div id="abilities" class="hud hidden">
+  <div id="hint"></div>
+  <div id="combo"><span id="comboN"></span><span id="comboX"></span><div class="cbar"><div id="comboBar"></div></div></div>
+  <div class="plate">
+    <div class="tray">
+      <div class="slot" id="slMeteor"><span class="ring"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="20"/><circle class="prog" cx="22" cy="22" r="20" pathLength="100"/><g transform="translate(10 10)"><path class="icon" d="M5 19a4 4 0 1 0 0-.01M9 15l10-10M10.5 19l8-8M5 13.5l8-8"/></g></svg></span><b>Meteor</b><small>Hold a peace sign</small></div>
+      <div class="slot" id="slZap"><span class="ring"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="20"/><circle class="prog" cx="22" cy="22" r="20" pathLength="100"/><g transform="translate(10 10)"><path class="icon" d="M13.5 2 5 13.5h6L10 22l8.5-11.5h-6z"/></g></svg></span><b>Lightning</b><small>Hold rock horns</small></div>
+      <div class="slot" id="slTornado"><span class="ring"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="20"/><circle class="prog" cx="22" cy="22" r="20" pathLength="100"/><g transform="translate(10 10)"><path class="icon" d="M3 5h18M5 9h14M8 13h9M10 17h5M11 21h2"/></g></svg></span><b>Tornado</b><small>Spin a finger</small></div>
+      <div class="slot" id="slDomain"><span class="ring"><svg viewBox="0 0 44 44"><circle class="track" cx="22" cy="22" r="20"/><circle class="prog" cx="22" cy="22" r="20" pathLength="100"/><g transform="translate(10 10)"><path class="icon" d="M7 8c-3 0-4.5 1.8-4.5 4S4 16 7 16c4 0 6-8 10-8 3 0 4.5 1.8 4.5 4S20 16 17 16c-4 0-6-8-10-8z"/></g></svg></span><b>Domain</b><small>Cross fingers</small></div>
+    </div>
+  </div>
+  <div class="meter"><span>Power</span><div class="line"><div id="meterFill"></div><div class="notch"></div></div><span id="meterPct">0%</span></div>
+</div>
+
+<div id="legend" class="hud plate panel">
+  <h2>How to play</h2>
+  <dl>
+    <dt>Press down on a building</dt><dd>Crush it</dd>
+    <dt>Sweep low across the board</dt><dd>Knock it over</dd>
+    <dt>Slap the table</dt><dd>Earthquake</dd>
+    <dt>Pinch a villager, lift, let go</dt><dd>Throw them</dd>
+    <dt>Hold a peace sign over it</dt><dd>Meteor</dd>
+    <dt>Hold rock horns over it</dt><dd>Lightning</dd>
+    <dt>Spin a finger in circles</dt><dd>Tornado</dd>
+    <dt>Cross your index and middle</dt><dd>Domain Expansion</dd>
+  </dl>
+  <p class="foot">Destruction fills the power meter, and quick chains multiply it. Tornado costs half a meter, Domain Expansion a full one. Drag the village to move it and scroll to resize.</p>
+</div>
+
+<div id="place" class="panel plate hidden">
+  <h2 id="placeTitle">Show me the table</h2>
+  <p id="placeText"></p>
+  <div class="bar"><div id="placeBar"></div></div>
+  <div id="placeHint">Waiting for a flat hand</div>
+  <div class="btns"><button class="btn" id="placeNow" disabled>That’s enough</button><button class="btn hidden" id="useLast">Use last spot</button></div>
+</div>
+
+<button id="settingsBtn" class="btn hidden">Settings</button>
+<div id="settings" class="panel plate hidden">
+  <label>Camera <select id="camSel"></select></label>
+  <div id="camInfo" class="note" style="text-align:right"></div>
+  <label>Village size <input id="size" type="range" min="18" max="250" value="110"></label>
+  <label>Touch height <input id="touch" type="range" min="-40" max="40" value="0"></label>
+  <label id="fovRow">Field of view <input id="fov" type="range" min="45" max="100" value="70"><span id="fovV" class="note">70°</span></label>
+  <label>Mirror the picture <input id="mirrorChk" type="checkbox" checked></label>
+  <label>Show hand tracking <input id="debugChk" type="checkbox"></label>
+  <div id="trackInfo" class="note"></div>
+  <div class="btns"><button class="btn" id="replace">Move to another table</button><button class="btn" id="reset">Rebuild the village</button><button class="btn" id="helpBtn">How to play</button></div>
+</div>
+
+<div id="start">
+  <a class="home" href="/apps/">Chase’s ChApp Store</a>
+  <div class="col">
+    <h1>Tabletop Tyrant</h1>
+    <p class="lede">A tiny village settles on your real desk. Your webcam watches your hands, and you decide what happens to it.</p>
+    <ol>
+      <li>Point your camera at the table in front of you.</li>
+      <li>Slide a flat hand across the table so the game can find it.</li>
+      <li>Drag the line onto the edge of your desk. The village fills the rest.</li>
+    </ol>
+    <div class="btns"><button id="go" class="btn primary">Turn on camera</button><button id="mouse" class="link">Play with a mouse instead</button></div>
+    <div id="status" role="status"></div>
+    <p class="fine">Works best in Chrome on a laptop. The video stays on your device; nothing is uploaded. On a MacBook, turn off Center Stage in the Video menu so the camera shows the whole table.</p>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+const $ = id => document.getElementById(id);
+const V3 = (x = 0, y = 0, z = 0) => new THREE.Vector3(x, y, z);
+const rand = (a, b) => a + Math.random() * (b - a);
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const clamp = THREE.MathUtils.clamp;
+
+// ======================================================================
+// config
+// ======================================================================
+const BASE = { w: 18, d: 12 };      // board footprint in world units (resizable)
+let S = 2;                          // cm per world unit — the scale of the little buildings
+const BASE_CM = 1.6;                // board thickness in cm (≈ palm-center height when flat)
+const thickU = () => BASE_CM / S;
+let HFOV = 70;
+
+// ======================================================================
+// renderer / scene
+// ======================================================================
+const stage = $('stage'), video = $('video');
+const fx = $('fx'), fctx = fx.getContext('2d');
+const calibCanvas = $('calibCanvas'), cctx = calibCanvas.getContext('2d');
+const voidCanvas = $('void'), vctx = voidCanvas.getContext('2d');
+const maskCanvas = document.createElement('canvas'), mctx = maskCanvas.getContext('2d');
+
+const renderer = new THREE.WebGLRenderer({ canvas: $('three'), alpha: true, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(40, 1, 1, 5000);
+const world = new THREE.Group(); scene.add(world);   // units; scaled by S into cm (table frame)
+
+const hemi = new THREE.HemisphereLight(0xfff6ea, 0x5b4a3a, 1.2); scene.add(hemi);
+const sun = new THREE.DirectionalLight(0xffffff, 2);
+sun.position.set(3, 26, 7); sun.castShadow = true;
+sun.shadow.mapSize.set(4096, 4096); sun.shadow.bias = -0.0005; sun.shadow.normalBias = .03;
+Object.assign(sun.shadow.camera, { left: -17, right: 17, top: 17, bottom: -17, near: .5, far: 70 });
+world.add(sun, sun.target);
+
+let VW = 1280, VH = 720;
+let mode = 'none';                  // 'ar' | 'mouse'
+let pose = null;                    // where the village sits on the table (camera space)
+let fpx = 900;                      // focal length in px
+let shake = 0;
+
+// ======================================================================
+// textures
+// ======================================================================
+function canvasTex(w, h, draw, srgb = false) {
+  const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h);
+  const t = new THREE.CanvasTexture(c); if (srgb) t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const radial = stops => canvasTex(128, 128, (x) => { const g = x.createRadialGradient(64,64,0,64,64,64); stops.forEach(([o,c]) => g.addColorStop(o,c)); x.fillStyle = g; x.fillRect(0,0,128,128); });
+const softTex = radial([[0,'rgba(255,255,255,1)'],[.45,'rgba(255,255,255,.55)'],[1,'rgba(255,255,255,0)']]);
+const decalTex = radial([[0,'rgba(255,255,255,.95)'],[.55,'rgba(255,255,255,.7)'],[1,'rgba(255,255,255,0)']]);
+const grassTex = canvasTex(256, 256, (x, w, h) => {
+  x.fillStyle = '#6c9a43'; x.fillRect(0,0,w,h);
+  for (let i=0;i<5000;i++) { x.fillStyle = pick(['#5d8c3a','#7fb04f','#86b85a','#4f7d33','#93c063']); x.globalAlpha = rand(.25,.7); x.fillRect(Math.random()*w, Math.random()*h, rand(1,3), rand(1,4)); }
+  x.globalAlpha = 1;
+}, true);
+grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping; grassTex.repeat.set(1/5, 1/5);
+const dirtTex = canvasTex(64, 64, (x, w, h) => {
+  const g = x.createLinearGradient(0,0,0,h); g.addColorStop(0,'#5a3d22'); g.addColorStop(.5,'#7a5533'); g.addColorStop(1,'#4a321c'); x.fillStyle = g; x.fillRect(0,0,w,h);
+  for (let i=0;i<300;i++) { x.fillStyle = pick(['#8a6440','#3f2a17','#9b7a55']); x.globalAlpha = .5; x.fillRect(Math.random()*w, Math.random()*h, 2, 1); }
+}, true);
+dirtTex.wrapS = dirtTex.wrapT = THREE.RepeatWrapping;
+const fieldTex = canvasTex(64, 64, (x, w, h) => {
+  const col = pick([['#d8b24a','#c79d34'],['#8bb14e','#739a3c'],['#b38b4f','#9b7640']]);
+  for (let i=0;i<8;i++) { x.fillStyle = col[i%2]; x.fillRect(0, i*h/8, w, h/8); }
+}, true);
+const boardShadowTex = canvasTex(256, 192, (x) => {
+  x.shadowColor = 'rgba(0,0,0,1)'; x.shadowBlur = 30; x.shadowOffsetX = 1000; x.fillStyle = '#000';
+  x.beginPath(); x.roundRect(40 - 1000, 40, 176, 112, 16); x.fill();
+});
+
+// ======================================================================
+// the board (a diorama tile that sits on your real table)
+// ======================================================================
+const boardGrp = new THREE.Group(); world.add(boardGrp);
+const grassMat = new THREE.MeshStandardMaterial({ map: grassTex, roughness: 1 });
+const dirtMat = new THREE.MeshStandardMaterial({ map: dirtTex, roughness: 1 });
+function roundedRect(w, d, r) {
+  const s = new THREE.Shape(), x = -w/2, y = -d/2;
+  s.moveTo(x+r, y); s.lineTo(x+w-r, y); s.quadraticCurveTo(x+w, y, x+w, y+r); s.lineTo(x+w, y+d-r);
+  s.quadraticCurveTo(x+w, y+d, x+w-r, y+d); s.lineTo(x+r, y+d); s.quadraticCurveTo(x, y+d, x, y+d-r);
+  s.lineTo(x, y+r); s.quadraticCurveTo(x, y, x+r, y); return s;
+}
+function buildBoard() {
+  boardGrp.clear();
+  const t = thickU(), bev = Math.min(.12, t*.25);
+  const geo = new THREE.ExtrudeGeometry(roundedRect(BASE.w - bev*2, BASE.d - bev*2, 1.3), { depth: Math.max(.02, t - bev*2), bevelEnabled: true, bevelThickness: bev, bevelSize: bev, bevelSegments: 2, curveSegments: 10 });
+  geo.rotateX(-Math.PI/2); geo.translate(0, -(t - bev), 0);
+  const slab = new THREE.Mesh(geo, [grassMat, dirtMat]); slab.castShadow = slab.receiveShadow = true; boardGrp.add(slab);
+  const cs = new THREE.Mesh(new THREE.PlaneGeometry(BASE.w * 256/176, BASE.d * 192/112), new THREE.MeshBasicMaterial({ map: boardShadowTex, transparent: true, opacity: .55, depthWrite: false }));
+  cs.rotation.x = -Math.PI/2; cs.position.y = -t + .01; boardGrp.add(cs);
+  const catcher = new THREE.Mesh(new THREE.PlaneGeometry(BASE.w * 3, BASE.d * 3), new THREE.ShadowMaterial({ opacity: .3 }));
+  catcher.rotation.x = -Math.PI/2; catcher.position.y = -t + .005; catcher.receiveShadow = true; boardGrp.add(catcher);
+}
+const inBoard = (p, m = 0) => Math.abs(p.x) <= BASE.w/2 - m && Math.abs(p.z) <= BASE.d/2 - m;
+const floorAt = p => inBoard(p) ? 0 : -thickU();
+
+// resize the board (cm wide, width/depth ratio); buildings keep their size, so a bigger board = more village
+let gridH = null;
+function setBoardSize(wcm, aspect = BASE.w / BASE.d) {
+  BASE.w = wcm / S; BASE.d = BASE.w / aspect;
+  const r = Math.hypot(BASE.w, BASE.d) * .55 + 3;
+  Object.assign(sun.shadow.camera, { left: -r, right: r, top: r, bottom: -r, far: 120 }); sun.shadow.camera.updateProjectionMatrix();
+  if (gridH) world.remove(gridH);
+  gridH = new THREE.GridHelper(BASE.w, Math.round(BASE.w), 0x9ef0ff, 0x9ef0ff);
+  gridH.scale.z = BASE.d / BASE.w; gridH.material.transparent = true; gridH.material.opacity = .35; gridH.position.y = .02;
+  gridH.visible = $('debugChk').checked; world.add(gridH);
+  buildBoard();
+}
+
+// ======================================================================
+// audio
+// ======================================================================
+let actx;
+function boom(power = 1, pitch = 1) {
+  if (!actx) return;
+  const len = .5*power + .2, buf = actx.createBuffer(1, actx.sampleRate*len, actx.sampleRate), d = buf.getChannelData(0);
+  for (let i=0;i<d.length;i++) d[i] = (Math.random()*2-1) * Math.pow(1 - i/d.length, 2.5);
+  const src = actx.createBufferSource(); src.buffer = buf; src.playbackRate.value = pitch;
+  const f = actx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 400 + 1200/power;
+  const g = actx.createGain(); g.gain.value = Math.min(1, .35*power);
+  src.connect(f).connect(g).connect(actx.destination); src.start();
+}
+function blip(freq = 800, dur = .08, type = 'square', vol = .05) {
+  if (!actx) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.setValueAtTime(freq, actx.currentTime); o.frequency.exponentialRampToValueAtTime(freq*1.8, actx.currentTime+dur);
+  g.gain.setValueAtTime(vol, actx.currentTime); g.gain.exponentialRampToValueAtTime(.0001, actx.currentTime+dur);
+  o.connect(g).connect(actx.destination); o.start(); o.stop(actx.currentTime+dur);
+}
+let eekT = 0;
+const eek = () => { if (eekT > 0) return; eekT = .12; blip(rand(1400, 2200), .09, 'sine', .03); };
+
+// ======================================================================
+// civilization
+// ======================================================================
+const buildings = [], villagers = [], trees = [], debris = [], particles = [], splats = [], arrows = [], meteors = [], bolts = [];
+let obstacles = [];
+const decoGrp = new THREE.Group(); world.add(decoGrp);
+let score = 0;
+const wallCols = [0xf2e3c6, 0xe8c9a0, 0xd9d2c5, 0xf6d7b0, 0xc9b79c];
+const roofCols = [0xb4412c, 0x8a3b2a, 0x3f5d7a, 0x6b4a8a, 0x2f6b4f];
+const std = c => new THREE.MeshStandardMaterial({ color: c, roughness: .85 });
+const dist2 = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
+const aoMat = new THREE.MeshBasicMaterial({ color: 0x000000, map: decalTex, transparent: true, opacity: .35, depthWrite: false });
+
+function freeSpot(r) {
+  for (let i=0;i<80;i++) {
+    const p = V3(rand(-1,1) * (BASE.w/2 - 1 - r), 0, rand(-1,1) * (BASE.d/2 - 1 - r));
+    if (buildings.every(b => !b.alive || dist2(b.pos, p) > b.radius + r + .35)
+      && trees.every(t => !t.alive || dist2(t.pos, p) > r + .45)
+      && obstacles.every(o => dist2(o.pos, p) > o.r + r)) return p;
+  }
+  return null;
+}
+function addAO(g, r) { const m = new THREE.Mesh(new THREE.PlaneGeometry(r*2.8, r*2.8), aoMat); m.rotation.x = -Math.PI/2; m.position.y = .006; g.add(m); }
+
+function makeBuilding(kind, pos, delay = 0) {
+  const g = new THREE.Group(); const parts = [];
+  const add = (geo, col, x, y, z) => { const m = new THREE.Mesh(geo, std(col)); m.position.set(x,y,z); m.castShadow = m.receiveShadow = true; g.add(m); parts.push(m); return m; };
+  let radius, height, chimney = null;
+  if (kind === 'house') {
+    const w = rand(.6,.9), d = rand(.5,.8), h = rand(.45,.7);
+    add(new THREE.BoxGeometry(w,h,d), pick(wallCols), 0, h/2, 0);
+    const roof = add(new THREE.ConeGeometry(Math.max(w,d)*.78, .5, 4), pick(roofCols), 0, h+.25, 0); roof.rotation.y = Math.PI/4;
+    add(new THREE.BoxGeometry(.14,.22,.02), 0x5a3a22, 0, .11, d/2+.01);
+    for (const sx of [-1, 1]) add(new THREE.BoxGeometry(.1,.1,.02), 0x2b3440, sx*w*.3, h*.62, d/2+.01);
+    add(new THREE.BoxGeometry(.09,.3,.09), 0x8a7a6a, w*.22, h+.3, 0);
+    chimney = V3(w*.22, h+.47, 0);
+    radius = .5; height = h + .5;
+  } else if (kind === 'tower') {
+    const h = rand(1.6, 2.4);
+    add(new THREE.CylinderGeometry(.32,.38,h,10), 0xbdb3a4, 0, h/2, 0);
+    add(new THREE.CylinderGeometry(.4,.4,.14,10), 0xa89e8f, 0, h, 0);
+    add(new THREE.ConeGeometry(.45,.7,10), pick(roofCols), 0, h+.42, 0);
+    add(new THREE.BoxGeometry(.02,.3,.3), 0xff4040, 0, h+.95, .15);
+    radius = .42; height = h + .8;
+  } else {
+    add(new THREE.BoxGeometry(1.6,.2,1.2), 0xe9e4d8, 0, .1, 0);
+    for (let i=0;i<4;i++) for (const z of [-.45,.45]) add(new THREE.CylinderGeometry(.07,.07,.8,8), 0xf5f1e6, -.6+i*.4, .6, z);
+    add(new THREE.BoxGeometry(1.7,.14,1.3), 0xe9e4d8, 0, 1.07, 0);
+    const r = add(new THREE.ConeGeometry(1.1,.5,4), 0xd4a93a, 0, 1.39, 0); r.rotation.y = Math.PI/4; r.scale.z = .75;
+    radius = .9; height = 1.6;
+  }
+  addAO(g, radius);
+  g.position.copy(pos); g.rotation.y = rand(0, Math.PI*2); g.scale.setScalar(.001);
+  world.add(g);
+  const b = { kind, group: g, parts, pos: pos.clone(), radius, height, chimney, smokeT: rand(1,4), grow: -delay, burning: 0, wobble: 0, alive: true, archerT: rand(1,3) };
+  buildings.push(b); return b;
+}
+function makeTree(pos, delay = 0) {
+  const g = new THREE.Group();
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(.05,.07,.35,6), std(0x6b4423)); trunk.position.y = .17;
+  const top = new THREE.Mesh(new THREE.ConeGeometry(.28,.7,7), std(pick([0x2f6b3a,0x3d7d3f,0x285c30]))); top.position.y = .65;
+  for (const m of [trunk, top]) { m.castShadow = m.receiveShadow = true; g.add(m); }
+  addAO(g, .25);
+  g.position.copy(pos); g.scale.setScalar(.001); g.rotation.y = rand(0, 6); world.add(g);
+  trees.push({ group: g, pos: pos.clone(), parts: [trunk, top], alive: true, grow: -delay });
+}
+const vBody = new THREE.CapsuleGeometry(.05,.1,3,6), vHead = new THREE.SphereGeometry(.05,8,6);
+function makeVillager(pos) {
+  const g = new THREE.Group();
+  const body = new THREE.Mesh(vBody, std(pick([0x3b6fd1,0xd13b3b,0xe0b12f,0x3bb36b,0x9a4fd1,0xffffff]))); body.position.y = .1;
+  const head = new THREE.Mesh(vHead, std(0xf1c9a0)); head.position.y = .24;
+  body.castShadow = head.castShadow = true; g.add(body, head);
+  g.position.copy(pos); world.add(g);
+  const v = { group: g, vel: V3(), target: null, state: 'walk', t: rand(0,5), panic: 0, alive: true };
+  villagers.push(v); return v;
+}
+function buildDecor() {
+  decoGrp.clear(); obstacles = [];
+  const q = civQuota();
+  for (let k = 0; k < q.ponds; k++) {
+  const pp = V3(rand(-1,1)*(BASE.w/2-3), 0, rand(-1,1)*(BASE.d/2-2.5));
+  const sand = new THREE.Mesh(new THREE.CircleGeometry(1.55, 32), std(0xcdb78a)); sand.scale.set(1.3,1,1); sand.rotation.x = -Math.PI/2; sand.position.set(pp.x,.006,pp.z); sand.receiveShadow = true;
+  const water = new THREE.Mesh(new THREE.CircleGeometry(1.35, 32), new THREE.MeshStandardMaterial({ color: 0x3b83c4, roughness: .15, metalness: .15 }));
+  water.scale.set(1.3,1,1); water.rotation.x = -Math.PI/2; water.position.set(pp.x,.012,pp.z); water.receiveShadow = true;
+  decoGrp.add(sand, water); obstacles.push({ pos: pp, r: 2 });
+  }
+  for (let i=0;i<q.fields;i++) {
+    const p = freeSpot(1.6); if (!p) continue;
+    const f = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 1.6), new THREE.MeshStandardMaterial({ map: fieldTex, roughness: 1 }));
+    f.rotation.x = -Math.PI/2; f.rotation.z = rand(0, Math.PI); f.position.set(p.x, .009, p.z); f.receiveShadow = true;
+    decoGrp.add(f); obstacles.push({ pos: p, r: 1.4 });
+  }
+}
+function civQuota() {
+  const a = BASE.w * BASE.d / 216;   // 1 = the original 18×12 board
+  return { temples: clamp(Math.round(a / 2.5), 1, 5), towers: clamp(Math.round(3 * a), 2, 16), houses: clamp(Math.round(15 * a), 8, 110),
+           trees: clamp(Math.round(20 * a), 10, 150), people: clamp(Math.round(36 * a), 20, 240), ponds: clamp(Math.round(a / 2.2), 1, 5), fields: clamp(Math.round(2 * a), 1, 10) };
+}
+function buildCivilization(stagger = 0) {
+  for (const arr of [buildings, villagers, trees]) { for (const e of arr) world.remove(e.group); arr.length = 0; }
+  for (const d of debris) world.remove(d.mesh); debris.length = 0;
+  for (const s of splats) world.remove(s.mesh); splats.length = 0;
+  buildDecor();
+  const q = civQuota(), wave = p => stagger + p.length() * .06 * Math.min(1, 12 / BASE.w * 1.5);
+  for (let i=0;i<q.temples;i++) { const c = freeSpot(1.2); if (c) makeBuilding('temple', c, wave(c)); }
+  for (let i=0;i<q.towers;i++) { const p = freeSpot(.5); p && makeBuilding('tower', p, wave(p)); }
+  for (let i=0;i<q.houses;i++) { const p = freeSpot(.55); p && makeBuilding('house', p, wave(p)); }
+  for (let i=0;i<q.trees;i++) { const p = freeSpot(.3); p && makeTree(p, wave(p)); }
+  setTimeout(() => { for (let i=0;i<q.people;i++) { const b = pick(buildings); if (b) makeVillager(b.pos.clone().add(V3(rand(-.9,.9),0,rand(-.9,.9)))); } }, (stagger + .9) * 1000);
+  score = 0;
+}
+
+// ======================================================================
+// particles & decals
+// ======================================================================
+const partGeo = new THREE.PlaneGeometry(1,1);
+function spawnParticle(pos, { color = 0xffaa33, size = .3, vel = V3(), life = 1, grow = 1.5, additive = true, gravity = 0 } = {}) {
+  if (particles.length > 450) { const o = particles.shift(); world.remove(o.mesh); o.mesh.material.dispose(); }
+  const mat = new THREE.MeshBasicMaterial({ color, map: softTex, transparent: true, depthWrite: false, blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending });
+  const m = new THREE.Mesh(partGeo, mat); m.position.copy(pos); m.scale.setScalar(size); world.add(m);
+  particles.push({ mesh: m, vel, life, max: life, size, grow, gravity, additive });
+}
+function fireball(pos, n = 20, spread = 1) {
+  for (let i=0;i<n;i++) spawnParticle(pos, { color: pick([0xffd36b,0xff7a1f,0xff3d00]), size: rand(.3,.8)*spread, vel: V3(rand(-1,1), rand(.5,2), rand(-1,1)).multiplyScalar(2.5*spread), life: rand(.4,.9), grow: 2 });
+  for (let i=0;i<n/2;i++) spawnParticle(pos.clone().setY(pos.y+.3), { color: 0x2a2a2a, size: rand(.5,1)*spread, vel: V3(rand(-.5,.5), rand(1,2.2), rand(-.5,.5)).multiplyScalar(spread), life: rand(1.2,2.2), grow: 2.5, additive: false });
+}
+function dust(pos, n = 12, spread = 1) {
+  for (let i=0;i<n;i++) spawnParticle(V3(pos.x, .1, pos.z), { color: 0xb8a784, size: rand(.25,.55)*spread, vel: V3(rand(-2.5,2.5), rand(.3,1.2), rand(-2.5,2.5)).multiplyScalar(spread), life: rand(.7,1.2), grow: 2, additive: false });
+}
+function shockwave(pos, radius, color = 0xffd36b) {
+  const m = new THREE.Mesh(new THREE.RingGeometry(.8, 1, 48), new THREE.MeshBasicMaterial({ color, transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+  m.rotation.x = -Math.PI/2; m.position.set(pos.x, floorAt(pos) + .05, pos.z); world.add(m);
+  particles.push({ mesh: m, vel: V3(), life: .5, max: .5, ring: radius, gravity: 0 });
+}
+function splat(pos, color = 0x7a0a0a, size = .18, life = 30) {
+  if (domain) return;   // nothing lands anywhere inside the void
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(size*2, size*2), new THREE.MeshBasicMaterial({ color, map: decalTex, transparent: true, opacity: .85, depthWrite: false }));
+  m.rotation.x = -Math.PI/2; m.rotation.z = rand(0,6); m.position.set(pos.x, floorAt(pos) + .013 + Math.random()*.004, pos.z); world.add(m);
+  splats.push({ mesh: m, life, max: life });
+  if (splats.length > 150) world.remove(splats.shift().mesh);
+}
+const flashEl = $('flash'); let flashA = 0;
+const shoutEl = $('shout'); let shoutT = 0, lastShout = 0;
+function shout(txt, force = true) {
+  const now = performance.now(); if (!force && now - lastShout < 900) return;
+  if (domain && domain.t < 4.2 && !force) return;   // the domain's own title owns the screen
+  lastShout = now;
+  if (txt === txt.toUpperCase()) txt = txt.charAt(0) + txt.slice(1).toLowerCase();
+  shoutEl.textContent = /[.!?]$/.test(txt) ? txt : txt + '.'; shoutT = 1;
+}
+
+// ======================================================================
+// destruction
+// ======================================================================
+function shatter(b, impulse, power = 1) {
+  if (!b.alive) return; b.alive = false;
+  b.group.updateMatrixWorld(true);
+  const inv = new THREE.Matrix4().copy(world.matrixWorld).invert();
+  for (const p of b.parts) {
+    const bb = new THREE.Box3().setFromObject(p).applyMatrix4(inv), size = bb.getSize(V3());
+    const n = Math.max(2, Math.min(7, Math.round(size.x*size.y*size.z*40)));
+    for (let i=0;i<n;i++) {
+      const s = Math.cbrt(size.x*size.y*size.z / n) * rand(.6,1);
+      const m = new THREE.Mesh(new THREE.BoxGeometry(s,s,s), p.material);
+      m.position.set(rand(bb.min.x,bb.max.x), rand(bb.min.y,bb.max.y), rand(bb.min.z,bb.max.z));
+      m.castShadow = true; world.add(m);
+      const out = m.position.clone().sub(b.pos).setY(0).normalize().multiplyScalar(rand(.6,2.2)*power);
+      const vel = impulse.clone().multiplyScalar(rand(.6,1.1)).add(out).add(V3(0, rand(1.5,4.5)*power, 0));
+      vel.y = Math.min(vel.y, 8); const hv = Math.hypot(vel.x, vel.z); if (hv > 9) { vel.x *= 9/hv; vel.z *= 9/hv; }
+      debris.push({ mesh: m, vel, spin: V3(rand(-10,10),rand(-10,10),rand(-10,10)), life: rand(5,8), s });
+    }
+  }
+  world.remove(b.group);
+  gain(b.kind === 'temple' ? 6 : b.kind === 'tower' ? 3 : 2, b.kind === 'temple' ? 500 : b.kind === 'tower' ? 250 : 100);
+  splat(b.pos, 0x2e2216, b.radius*1.3, 40); dust(b.pos, 8, .7);
+  if (debris.length > 600) for (const d of debris.splice(0, debris.length-600)) world.remove(d.mesh);
+}
+function killVillager(v, fling) {
+  if (!v.alive) return;
+  if (fling) { v.state = 'fly'; v.vel.copy(fling); v.panic = 0; eek(); return; }
+  v.alive = false; world.remove(v.group); splat(v.group.position); gain(.6, 10);
+  for (let i=0;i<5;i++) spawnParticle(V3(v.group.position.x, floorAt(v.group.position)+.1, v.group.position.z), { color: 0xaa1111, size: .08, vel: V3(rand(-2,2),rand(1,3),rand(-2,2)), life: .5, grow: 0, additive: false, gravity: 15 });
+}
+function destroyTree(t, impulse) {
+  if (!t.alive) return; t.alive = false;
+  for (const p of t.parts) {
+    const wp = t.group.localToWorld(p.position.clone()); world.worldToLocal(wp);
+    t.group.remove(p); p.position.copy(wp); p.scale.setScalar(1); world.add(p);
+    debris.push({ mesh: p, vel: impulse.clone().add(V3(rand(-1,1),rand(1.5,4),rand(-1,1))), spin: V3(rand(-8,8),0,rand(-8,8)), life: 6, s: .2 });
+  }
+  world.remove(t.group); gain(.3, 5);
+}
+function blast(center, radius, power, { fire = false } = {}) {
+  const c = V3(center.x, 0, center.z);
+  for (const b of buildings) {
+    if (!b.alive) continue; const d = dist2(b.pos, c);
+    if (d < radius + b.radius) {
+      if (fire && d > radius*.5) { b.burning = Math.max(b.burning, 2.5); continue; }
+      shatter(b, b.pos.clone().sub(c).setY(0).normalize().multiplyScalar(power*5*(1 - d/(radius+b.radius))), power);
+    }
+  }
+  for (const t of trees) if (t.alive && dist2(t.pos, c) < radius) destroyTree(t, t.pos.clone().sub(c).setY(0).normalize().multiplyScalar(power*3));
+  for (const v of villagers) {
+    if (!v.alive || v.state === 'held') continue; const d = dist2(v.group.position, c);
+    if (d < radius*.55) killVillager(v);
+    else if (d < radius*1.2) killVillager(v, v.group.position.clone().sub(c).setY(0).normalize().multiplyScalar(power*5).add(V3(0, rand(3,6)*power, 0)));
+    else if (d < radius*3) v.panic = 4;
+  }
+}
+
+// ======================================================================
+// spells
+// ======================================================================
+function clampToBoard(p) { return V3(clamp(p.x, -BASE.w/2+.5, BASE.w/2-.5), 0, clamp(p.z, -BASE.d/2+.5, BASE.d/2-.5)); }
+function castMeteor(target) {
+  target = clampToBoard(target);
+  const from = target.clone().add(V3(-7, 30, -12));
+  const m = new THREE.Mesh(new THREE.IcosahedronGeometry(.6, 1), new THREE.MeshStandardMaterial({ color: 0x552211, emissive: 0xff5a1f, emissiveIntensity: 1.6, flatShading: true }));
+  m.position.copy(from); m.castShadow = true; world.add(m);
+  m.add(new THREE.PointLight(0xff7a1f, 500, 0, 2));
+  meteors.push({ mesh: m, from, to: target, t: 0 });
+  shout('METEOR'); blip(200, .4);
+}
+function castLightning(target) {
+  target = clampToBoard(target);
+  const pts = []; const top = target.clone().add(V3(rand(-2,2), 26, rand(-2,2)));
+  for (let i=0;i<=16;i++) { const k = i/16; pts.push(top.clone().lerp(target, k).add(V3(rand(-.6,.6)*(1-k*k), 0, rand(-.6,.6)*(1-k*k)))); }
+  const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xe8f8ff, transparent: true }));
+  world.add(line);
+  const light = new THREE.PointLight(0xa8e0ff, 2200, 0, 2); light.position.copy(target).setY(3); world.add(light);
+  bolts.push({ line, light, life: .35 });
+  blast(target, 1.8, 1, { fire: true }); fireball(target, 14, .7); shockwave(target, 3, 0x9ef0ff);
+  flashA = .6; shake = .35; boom(1.2, 1.6); score += 50; shout('ZAP');
+}
+function quake(target, strength = 1) {
+  const t = V3(target.x, 0, target.z);
+  blast(t, 1.6*strength, 1.0*strength); shockwave(t, 3.2*strength); shockwave(t, 1.8*strength, 0xffffff);
+  dust(t, 16, strength); for (let i=0;i<3;i++) splat(t.clone().add(V3(rand(-.6,.6),0,rand(-.6,.6))), 0x3a2c1c, rand(.5,.9)*strength, 20);
+  for (const v of villagers) if (v.alive && v.state === 'walk' && dist2(v.group.position, t) < 6*strength) { v.state = 'fly'; v.vel.set(rand(-1,1), rand(2,3.5), rand(-1,1)); }
+  shake = .5*strength; boom(1.3*strength, .7); shout(strength > 1.4 ? 'Earthquake' : 'Quake', !domain); score += 20;
+}
+
+// ======================================================================
+// power meter + combos: destruction charges the meter, chains multiply it.
+// The OP moves (tornado ½, domain full) spend it; meteor/lightning just have cooldowns.
+// ======================================================================
+const power = { v: 0, combo: 0, comboT: 0, shown: { half: false, full: false } };
+const CD = { meteor: 0, zap: 0 }, METEOR_CD = 8, ZAP_CD = 1.2, TORNADO_COST = 50;
+const COMBO_WINDOW = 2.2;
+const comboMult = () => 1 + Math.min(power.combo, 50) * .03;
+function gain(pts, scorePts) {
+  power.combo++; power.comboT = COMBO_WINDOW;
+  const mult = comboMult();                                    // up to ×2.5
+  score += Math.round(scorePts * mult);
+  const scale = domain ? 0 : tornadoes.length ? .35 : 1;       // OP moves don't pay for themselves
+  power.v = Math.min(100, power.v + pts * mult * scale);
+  for (const [n, name] of [[15, 'Rampage'], [40, 'Cataclysm'], [80, 'Godlike']]) if (power.combo === n) { shout(name); blip(900 + n * 8, .2, 'triangle', .05); }
+  if (!power.shown.half && power.v >= TORNADO_COST) { power.shown.half = true; hint('Tornado ready. Spin a finger in circles.'); blip(700, .25, 'triangle', .06); }
+  if (!power.shown.full && power.v >= 100) { power.shown.full = true; hint('Domain Expansion ready. Cross your fingers.'); blip(1100, .4, 'triangle', .07); }
+}
+function spend(n) { power.v = Math.max(0, power.v - n); power.shown.half = power.v >= TORNADO_COST; power.shown.full = power.v >= 100; }
+let hintT = 0, lastHint = '';
+function hint(msg) { if (msg === lastHint && hintT > .6) return; lastHint = msg; hintT = 1.6; $('hint').textContent = msg; }
+function updatePowerHUD(dt) {
+  CD.meteor = Math.max(0, CD.meteor - dt); CD.zap = Math.max(0, CD.zap - dt);
+  if (power.comboT > 0 && (power.comboT -= dt) <= 0) { if (power.combo >= 8) hint(`Combo ended at ${power.combo}`); power.combo = 0; }
+  hintT -= dt; $('hint').style.opacity = clamp(hintT * 2, 0, 1);
+  $('meterFill').style.width = power.v + '%'; $('meterPct').textContent = Math.floor(power.v) + '%';
+  $('abilities').classList.toggle('full', power.v >= 100);
+  const combo = $('combo'); combo.classList.toggle('on', power.combo >= 3);
+  if (power.combo >= 3) { $('comboN').textContent = `${power.combo}-hit combo`; $('comboX').textContent = `×${comboMult().toFixed(2)}`; $('comboBar').style.width = (power.comboT / COMBO_WINDOW * 100) + '%'; }
+  const slot = (id, ready, fill) => { const el = $(id); el.classList.toggle('ready', ready); el.querySelector('.prog').style.strokeDashoffset = 100 * (1 - clamp(fill, 0, 1)); };
+  slot('slMeteor', CD.meteor <= 0, 1 - CD.meteor / METEOR_CD);
+  slot('slZap', CD.zap <= 0, 1 - CD.zap / ZAP_CD);
+  slot('slTornado', power.v >= TORNADO_COST, power.v / TORNADO_COST);
+  slot('slDomain', power.v >= 100 && !domain, power.v / 100);
+}
+
+// ======================================================================
+// TORNADO — spin your index finger in circles over the board
+// ======================================================================
+const tornadoes = [];
+function funnelTexture() {
+  return canvasTex(256, 256, (x, w, h) => {
+    for (let i = 0; i < 520; i++) {
+      const y = rand(0, h), sx = rand(-60, w), c = rand(120, 215) | 0;
+      x.strokeStyle = `rgba(${c},${c - 8},${c - 20},${rand(.08, .45)})`; x.lineWidth = rand(1, 5);
+      x.beginPath(); x.moveTo(sx, y); x.lineTo(sx + rand(40, 110), y - rand(8, 30)); x.stroke();
+    }
+    x.globalCompositeOperation = 'destination-in';   // wispy at the ground, dense in the middle
+    const g = x.createLinearGradient(0, h, 0, 0); g.addColorStop(0, 'rgba(0,0,0,.25)'); g.addColorStop(.35, 'rgba(0,0,0,1)'); g.addColorStop(1, 'rgba(0,0,0,.55)');
+    x.fillStyle = g; x.fillRect(0, 0, w, h);
+  }, true);
+}
+function windSound() {
+  if (!actx) return null;
+  const buf = actx.createBuffer(1, actx.sampleRate * 2, actx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const src = actx.createBufferSource(); src.buffer = buf; src.loop = true;
+  const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 420; bp.Q.value = .9;
+  const g = actx.createGain(); g.gain.setValueAtTime(0, actx.currentTime); g.gain.linearRampToValueAtTime(.18, actx.currentTime + .6);
+  const lfo = actx.createOscillator(), lg = actx.createGain(); lfo.frequency.value = 1.7; lg.gain.value = 180; lfo.connect(lg).connect(bp.frequency); lfo.start();
+  src.connect(bp).connect(g).connect(actx.destination); src.start();
+  return { stop: () => { g.gain.linearRampToValueAtTime(0, actx.currentTime + .8); setTimeout(() => { src.stop(); lfo.stop(); }, 900); } };
+}
+function castTornado(at, owner) {
+  const H = 9 + Math.min(BASE.w, 40) * .12, R = 2.3;
+  const g = new THREE.Group(); g.position.set(at.x, 0, at.z); g.scale.setScalar(.01); world.add(g);
+  const layers = [[1, .85, 0xa39584, 7], [.72, .8, 0x5e5447, 11], [1.2, .4, 0xd2c8ba, -5]].map(([k, op, col, spin]) => {
+    const pts = []; for (let i = 0; i <= 24; i++) { const y = i / 24 * H; pts.push(new THREE.Vector2((.3 + (R * 1.15 - .3) * Math.pow(y / H, 1.8)) * k + .05, y)); }
+    const tex = funnelTexture(); tex.wrapS = THREE.RepeatWrapping; tex.repeat.set(2, 1);
+    const m = new THREE.Mesh(new THREE.LatheGeometry(pts, 40), new THREE.MeshBasicMaterial({ map: tex, color: col, transparent: true, opacity: op, depthWrite: false, side: THREE.DoubleSide }));
+    m.userData = { spin, tex }; g.add(m); return m;
+  });
+  const shadow = new THREE.Mesh(partGeo, new THREE.MeshBasicMaterial({ map: decalTex, color: 0x000000, transparent: true, opacity: .35, depthWrite: false }));
+  shadow.rotation.x = -Math.PI / 2; shadow.position.y = .03; shadow.scale.setScalar(R * 2.6); g.add(shadow);
+  const tw = { g, layers, pos: g.position, vel: V3(), t: 0, life: 9, H, R, owner, fade: 0, alive: true, wind: windSound() };
+  tornadoes.push(tw);
+  shout('TORNADO'); boom(1, .5); shake = Math.max(shake, .3);
+}
+// debris caught in the funnel: swirl around, get sucked in, ride up, get flung out the top
+function vortex(pos, vel, dt, tw) {
+  const dx = pos.x - tw.pos.x, dz = pos.z - tw.pos.z, r = Math.hypot(dx, dz) + .01;
+  if (r > tw.R * 2.2 || pos.y > tw.H) return false;
+  const k = tw.fade * (r < tw.R ? 1 : (tw.R * 2.2 - r) / (tw.R * 1.2));
+  vel.x += (-dz / r * 38 - dx / r * 14) * k * dt; vel.z += (dx / r * 38 - dz / r * 14) * k * dt;
+  vel.y += 30 * k * dt; vel.multiplyScalar(1 - .8 * k * dt);
+  return true;
+}
+function updateTornadoes(dt) {
+  for (let i = tornadoes.length - 1; i >= 0; i--) {
+    const tw = tornadoes[i]; tw.t += dt;
+    tw.fade = Math.min(1, tw.t / .6) * clamp((tw.life - tw.t) / 1, 0, 1);
+    tw.g.scale.set(Math.max(.01, tw.fade), Math.max(.01, Math.min(1, tw.t / .4)), Math.max(.01, tw.fade));
+    // steer it with the finger that spun it up; otherwise it wanders
+    const h = hands[tw.owner];
+    if (h?.seen && h.ext?.[0] && !h.ext[1] && inBoard(h.w[8], -2)) {
+      const want = V3(h.w[8].x - tw.pos.x, 0, h.w[8].z - tw.pos.z).multiplyScalar(3).clampLength(0, 10);
+      tw.vel.lerp(want, Math.min(1, dt * 4));
+    } else tw.vel.add(V3(rand(-1, 1), 0, rand(-1, 1)).multiplyScalar(dt * 10)).clampLength(0, 3);
+    tw.pos.addScaledVector(tw.vel, dt);
+    if (Math.abs(tw.pos.x) > BASE.w / 2 - 1) { tw.pos.x = Math.sign(tw.pos.x) * (BASE.w / 2 - 1); tw.vel.x *= -1; }
+    if (Math.abs(tw.pos.z) > BASE.d / 2 - 1) { tw.pos.z = Math.sign(tw.pos.z) * (BASE.d / 2 - 1); tw.vel.z *= -1; }
+    tw.layers.forEach((m, k) => { m.rotation.y += dt * m.userData.spin; m.userData.tex.offset.x -= dt * .4 * Math.sign(m.userData.spin); m.position.x = Math.sin(tw.t * 2.3 + k) * .18; m.position.z = Math.cos(tw.t * 1.9 + k) * .18; });
+    tw.g.rotation.z = -tw.vel.x * .02; tw.g.rotation.x = tw.vel.z * .02;
+    shake = Math.max(shake, .05 * tw.fade);
+    // dust skirt + bits whipping around the funnel
+    for (let n = 0; n < 3; n++) {
+      const a = rand(0, 7), rr = tw.R * rand(.6, 1.3);
+      spawnParticle(V3(tw.pos.x + Math.cos(a) * rr, .15, tw.pos.z + Math.sin(a) * rr), { color: pick([0x9c8a6c, 0x7d6c55, 0xb8a784]), size: rand(.4, .8), vel: V3(-Math.sin(a) * 5 + Math.cos(a) * 2, rand(.5, 2), Math.cos(a) * 5 + Math.sin(a) * 2), life: rand(.6, 1.1), grow: 2.2, additive: false });
+    }
+    for (let n = 0; n < 2; n++) {
+    const a = rand(0, 7), y = rand(1, tw.H), rr = (.3 + (tw.R * 1.15 - .3) * Math.pow(y / tw.H, 1.8));
+    spawnParticle(V3(tw.pos.x + Math.cos(a) * rr, y, tw.pos.z + Math.sin(a) * rr), { color: 0x4a3f33, size: rand(.12, .3), vel: V3(-Math.sin(a) * 8, 2, Math.cos(a) * 8), life: .5, grow: 0, additive: false });
+    }
+    // wreck whatever it touches
+    if (tw.fade > .5) {
+      for (const b of buildings) {
+        if (!b.alive || b.grow < 1 || dist2(b.pos, tw.pos) > tw.R + b.radius) continue;
+        b.wobble = 1; b.twist = (b.twist || 0) + dt;
+        if (b.twist > .35) { const d = V3(b.pos.x - tw.pos.x, 0, b.pos.z - tw.pos.z).normalize(); shatter(b, V3(-d.z * 7, 7, d.x * 7), .6); }
+      }
+      for (const t of trees) if (t.alive && t.grow >= 1 && dist2(t.pos, tw.pos) < tw.R) { const d = V3(t.pos.x - tw.pos.x, 0, t.pos.z - tw.pos.z).normalize(); destroyTree(t, V3(-d.z * 6, 6, d.x * 6)); }
+      for (const v of villagers) {
+        if (!v.alive || v.state !== 'walk' || dist2(v.group.position, tw.pos) > tw.R * 1.3) continue;
+        v.state = 'fly'; v.twister = tw; v.orbA = Math.atan2(v.group.position.z - tw.pos.z, v.group.position.x - tw.pos.x);
+        v.orbR = dist2(v.group.position, tw.pos); v.orbH = .2; eek();
+      }
+    }
+    if (tw.t >= tw.life) { tw.alive = false; world.remove(tw.g); tw.wind?.stop(); tornadoes.splice(i, 1); }
+  }
+}
+// spinning-finger detector: the index tip's path, over the last ~1.6s, has to wind around
+// its own center more than 1.5 times, in a roughly round loop of sensible size
+function detectSpin(h) {
+  const now = performance.now(), pointing = h.ext && h.ext[0] && !h.ext[1] && !h.ext[2];
+  // while circling, the fingertip swings back toward the palm and briefly stops reading as
+  // "extended" — so only give up after a short grace period without a pointing frame
+  if (pointing) h.lastPoint = now;
+  else if (now - (h.lastPoint || 0) > 350) { h.spinBuf = []; h.spinTurns = 0; return; }
+  const b = (h.spinBuf ||= []); b.push({ x: h.px[8].x, y: h.px[8].y, t: now });
+  while (b.length && now - b[0].t > 1600) b.shift();
+  h.spinTurns = 0;
+  if (b.length < 12) return;
+  const cx = b.reduce((a, p) => a + p.x, 0) / b.length, cy = b.reduce((a, p) => a + p.y, 0) / b.length;
+  let tot = 0, prev = null; const rs = [];
+  for (const p of b) {
+    const a = Math.atan2(p.y - cy, p.x - cx); rs.push(Math.hypot(p.x - cx, p.y - cy));
+    if (prev !== null) { let d = a - prev; if (d > Math.PI) d -= 2 * Math.PI; if (d < -Math.PI) d += 2 * Math.PI; tot += d; }
+    prev = a;
+  }
+  const mr = rs.reduce((a, r) => a + r, 0) / rs.length, sd = Math.sqrt(rs.reduce((a, r) => a + (r - mr) ** 2, 0) / rs.length);
+  if (mr < VH * .012 || mr > VH * .25 || sd > mr * .6) return;
+  h.spinTurns = Math.abs(tot) / (2 * Math.PI);
+  if (h.spinTurns >= 1.5) {
+    h.spinBuf = []; h.spinTurns = 0;
+    if (domain) return;
+    if (power.v < TORNADO_COST) { hint('Tornado needs half a meter. Keep smashing.'); blip(160, .15, 'sawtooth', .04); return; }
+    spend(TORNADO_COST); castTornado(clampToBoard(h.w[8]), hands.indexOf(h));
+  }
+}
+
+// ======================================================================
+// DOMAIN EXPANSION: INFINITE VOID
+//   open (void spreads from your hand) → pull (black hole eats everything,
+//   then the board itself) → collapse (flash) → close (void recedes, world returns)
+// ======================================================================
+let domain = null;
+const DOM = { open: 1.6, pull: 6.5, collapse: .9, close: 1.3 };
+const diskTex = canvasTex(512, 512, (x) => {
+  x.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 1400; i++) {
+    const k = Math.pow(Math.random(), 1.6), r = 256 * (.3 + .7 * k);          // weighted toward the hot inner edge
+    const col = k < .25 ? [255, 250, 235] : k < .5 ? [255, 190, 110] : k < .75 ? [255, 110, 150] : [150, 110, 255];
+    x.strokeStyle = `rgba(${col},${(1 - k) * .35 + .05})`; x.lineWidth = rand(1, 4);
+    const a0 = rand(0, 7); x.beginPath(); x.arc(256, 256, r, a0, a0 + rand(.2, 1.6)); x.stroke();
+  }
+}, true);
+const ringTex = radial([[0,'rgba(255,255,255,0)'],[.5,'rgba(255,255,255,0)'],[.6,'rgba(255,255,255,1)'],[.66,'rgba(190,210,255,.55)'],[.85,'rgba(120,120,255,0)'],[1,'rgba(0,0,0,0)']]);
+const voidArt = document.createElement('canvas');
+const add3 = (mat) => Object.assign(mat, { transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+
+function paintVoid() {
+  const D = Math.ceil(Math.hypot(VW, VH) * 1.15); voidArt.width = voidArt.height = D;
+  const x = voidArt.getContext('2d'), c = D / 2;
+  x.fillStyle = '#03020c'; x.fillRect(0, 0, D, D);
+  const core = x.createRadialGradient(c, c, 0, c, c, D * .5);
+  core.addColorStop(0, 'rgba(120,90,255,.35)'); core.addColorStop(.4, 'rgba(40,60,160,.18)'); core.addColorStop(1, 'rgba(0,0,0,0)');
+  x.fillStyle = core; x.fillRect(0, 0, D, D);
+  x.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 16; i++) {                     // nebula clouds
+    const px = rand(0, D), py = rand(0, D), r = rand(.08, .3) * D, g = x.createRadialGradient(px, py, 0, px, py, r);
+    g.addColorStop(0, pick(['rgba(120,80,255,.16)','rgba(60,170,255,.13)','rgba(255,255,255,.07)','rgba(210,90,255,.11)'])); g.addColorStop(1, 'rgba(0,0,0,0)');
+    x.fillStyle = g; x.fillRect(px - r, py - r, r * 2, r * 2);
+  }
+  for (let i = 0; i < 220; i++) {                    // endless streams of information, all aimed at the center
+    const a = rand(0, 7), r0 = rand(.05, .45) * D, r1 = r0 + rand(.05, .3) * D;
+    const g = x.createLinearGradient(c + Math.cos(a) * r0, c + Math.sin(a) * r0, c + Math.cos(a) * r1, c + Math.sin(a) * r1);
+    g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(.5, `rgba(${pick(['210,230,255','170,150,255','140,220,255'])},${rand(.15,.55)})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.strokeStyle = g; x.lineWidth = rand(.6, 2.6);
+    x.beginPath(); x.moveTo(c + Math.cos(a) * r0, c + Math.sin(a) * r0); x.lineTo(c + Math.cos(a) * r1, c + Math.sin(a) * r1); x.stroke();
+  }
+  for (let i = 0; i < 1600; i++) {                   // stars
+    const r = Math.pow(Math.random(), 3) * 2.2 + .4; x.fillStyle = `rgba(255,255,255,${rand(.35, 1)})`;
+    x.beginPath(); x.arc(rand(0, D), rand(0, D), r, 0, 7); x.fill();
+  }
+  x.globalCompositeOperation = 'source-over';
+  domain.artD = D;
+}
+function toVideoPx(worldUnits) {
+  const p = worldUnits.clone().multiplyScalar(S).add(world.position).project(camera);
+  return { x: (p.x + 1) / 2 * VW, y: (1 - p.y) / 2 * VH };
+}
+function domainSound() {
+  if (!actx) return; const t0 = actx.currentTime, end = DOM.open + DOM.pull + DOM.collapse;
+  const env = (node, peak, a, r) => { const g = actx.createGain(); g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(peak, t0 + a); g.gain.setValueAtTime(peak, t0 + end - r); g.gain.linearRampToValueAtTime(0, t0 + end); node.connect(g).connect(actx.destination); return g; };
+  const sub = actx.createOscillator(); sub.frequency.setValueAtTime(72, t0); sub.frequency.exponentialRampToValueAtTime(26, t0 + end); env(sub, .4, 1.2, .3); sub.start(t0); sub.stop(t0 + end + .1);
+  for (const [f, v] of [[523.25, .018], [783.99, .014], [1046.5, .01], [1567.98, .007]]) { const o = actx.createOscillator(); o.frequency.value = f; env(o, v, 1.4, 1); o.start(t0); o.stop(t0 + end + .1); }
+  const buf = actx.createBuffer(1, actx.sampleRate * end, actx.sampleRate), d = buf.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  const n = actx.createBufferSource(); n.buffer = buf; const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 3;
+  bp.frequency.setValueAtTime(150, t0 + DOM.open); bp.frequency.exponentialRampToValueAtTime(2200, t0 + end);
+  const g = actx.createGain(); g.gain.setValueAtTime(0, t0 + DOM.open); g.gain.linearRampToValueAtTime(.16, t0 + end - .3); g.gain.linearRampToValueAtTime(0, t0 + end);
+  n.connect(bp).connect(g).connect(actx.destination); n.start(t0); n.stop(t0 + end);
+}
+function castDomain(originPx) {
+  if (domain || !world.visible) return;
+  const coreR = clamp(BASE.w * .045, .9, 3.2), bhPos = V3(0, 4 + BASE.w * .12, 0);
+  const g = new THREE.Group(); g.position.copy(bhPos); g.scale.setScalar(.001); world.add(g);
+  const glow = new THREE.Mesh(partGeo, add3(new THREE.MeshBasicMaterial({ map: softTex, color: 0x6a4cff, opacity: .75 }))); glow.scale.setScalar(coreR * 13); glow.renderOrder = -1;
+  const core = new THREE.Mesh(new THREE.SphereGeometry(coreR, 40, 28), new THREE.MeshBasicMaterial({ color: 0x000000 }));
+  const disk = new THREE.Mesh(new THREE.RingGeometry(coreR * 1.25, coreR * 4.4, 160, 1), add3(new THREE.MeshBasicMaterial({ map: diskTex, side: THREE.DoubleSide })));
+  disk.rotation.x = -Math.PI / 2 + .34;
+  const halo = new THREE.Mesh(partGeo, add3(new THREE.MeshBasicMaterial({ map: ringTex, color: 0xdde8ff }))); halo.scale.setScalar(coreR * 3.4);
+  const light = new THREE.PointLight(0xffb070, 0, 0, 2);
+  g.add(glow, core, disk, halo, light);
+  domain = { t: 0, originPx, bhPos, coreR, g, glow, core, disk, halo, light, motes: [], chunks: [], broken: false, pulling: false, done: false, eaten: 0, strength: 0 };
+  const far = Math.max(BASE.w, BASE.d) * .6;
+  const rip = p => DOM.open + .3 + dist2(p, bhPos) / far * 3.2 + rand(0, .7);
+  for (const b of buildings) b.ripAt = rip(b.pos);
+  for (const t of trees) t.ripAt = rip(t.pos);
+  for (const v of villagers) v.ripAt = rip(v.group.position) - .4;
+  paintVoid();
+  domain.bhPx = toVideoPx(bhPos);
+  const title = $('domainTitle'); title.className = 'on';
+  setTimeout(() => title.classList.add('void'), 1000);
+  setTimeout(() => title.className = '', 3900);
+  domainSound(); boom(1.5, .35); flashA = .5; shoutT = 0; shoutEl.style.opacity = 0;
+}
+// black-hole gravity: strong pull + swirl + drag, so things spiral in instead of orbiting forever
+function pull(pos, vel, dt) {
+  const d = domain.bhPos.clone().sub(pos), r = d.length(), n = d.divideScalar(Math.max(r, 1e-3));
+  const a = domain.strength * (9 + 380 / (r * r + 4));
+  vel.addScaledVector(n, a * dt).addScaledVector(V3(-n.z, 0, n.x), a * .55 * dt).multiplyScalar(1 - Math.min(.5, 1.3 * dt));
+  pos.addScaledVector(vel, dt);
+  return pos.distanceTo(domain.bhPos);
+}
+function consume(p) {
+  domain.eaten++; score += 3;
+  if (Math.random() < .5) spawnParticle(p, { color: pick([0xdde8ff, 0xffd9a0, 0xb48cff]), size: rand(.2, .45), life: .25, grow: 1 });
+}
+function breakBoard() {
+  domain.broken = true; boardGrp.visible = false; decoGrp.visible = false;
+  for (const s of splats) s.life = Math.min(s.life, .5);
+  const cs = Math.max(1.6, Math.sqrt(BASE.w * BASE.d / 260)), nx = Math.round(BASE.w / cs), nz = Math.round(BASE.d / cs), t = thickU();
+  const geo = new THREE.BoxGeometry(BASE.w / nx * .97, t, BASE.d / nz * .97), mats = [dirtMat, dirtMat, grassMat, dirtMat, dirtMat, dirtMat];
+  const far = Math.max(BASE.w, BASE.d) * .6;
+  for (let ix = 0; ix < nx; ix++) for (let iz = 0; iz < nz; iz++) {
+    const m = new THREE.Mesh(geo, mats); m.castShadow = m.receiveShadow = true;
+    m.position.set(-BASE.w / 2 + (ix + .5) * BASE.w / nx, -t / 2, -BASE.d / 2 + (iz + .5) * BASE.d / nz); world.add(m);
+    domain.chunks.push({ mesh: m, vel: V3(), spin: V3(rand(-4, 4), rand(-4, 4), rand(-4, 4)), ripAt: domain.t + .15 + dist2(m.position, domain.bhPos) / far * 2.4 + rand(0, .5), free: false });
+  }
+  shake = Math.max(shake, .6); boom(2, .4); shout('The ground gives way');
+}
+function updateDomain(dt) {
+  if (!domain) return;
+  const D = domain; D.t += dt;
+  const tPull = D.t - DOM.open, tCol = tPull - DOM.pull, tClose = tCol - DOM.collapse;
+  D.pulling = tPull > 0 && tCol < DOM.collapse;
+  D.strength = tPull <= 0 ? 0 : tCol > 0 ? 4 + tCol * 25 : Math.min(1, tPull / 2.5) * (1 + tPull * .12);
+  // the black hole itself
+  const grow = clamp((D.t - .5) / 1.1, 0, 1), shrink = tCol > 0 ? clamp(1 - tCol / DOM.collapse, 0, 1) : 1;
+  D.g.scale.setScalar(Math.max(.001, (1 - Math.pow(1 - grow, 3)) * (1 + Math.sin(grow * Math.PI) * .15) * shrink));
+  D.disk.rotation.z += dt * (1.2 + D.strength * .4);
+  D.halo.quaternion.copy(camera.quaternion); D.glow.quaternion.copy(camera.quaternion);
+  D.halo.scale.setScalar(D.coreR * (3.4 + Math.sin(D.t * 9) * .08));
+  D.light.intensity = 4000 * grow * shrink;
+  if (tPull > 0 && tCol < 0) shake = Math.max(shake, .06 + D.strength * .08);
+  // tear the world apart, closest first
+  if (D.pulling) {
+    for (const b of buildings) if (b.alive && D.t > b.ripAt) {
+      const toward = D.bhPos.clone().sub(b.pos).setY(0).normalize().multiplyScalar(2);
+      shatter(b, toward.add(V3(0, 3, 0)), .5); score += 20;
+    }
+    for (const t of trees) if (t.alive && D.t > t.ripAt) destroyTree(t, V3(0, 3, 0));
+    for (const v of villagers) if (v.alive && !v.sucked && v.state !== 'held' && D.t > (v.ripAt ?? 0)) {
+      v.sucked = true; v.state = 'fly'; v.vel.set(rand(-.5, .5), rand(2, 4), rand(-.5, .5)); if (Math.random() < .3) eek();
+    }
+    if (!D.broken && tPull > 3) breakBoard();
+    for (let i = 0; i < 3; i++) {   // glittering matter spiraling into the disk
+      const a = rand(0, 7), r = D.coreR * rand(5, 9), m = new THREE.Mesh(partGeo, add3(new THREE.MeshBasicMaterial({ map: softTex, color: pick([0xffd9a0, 0xb48cff, 0x9ef0ff, 0xffffff]) })));
+      m.position.copy(D.bhPos).add(V3(Math.cos(a) * r, rand(-.6, .6), Math.sin(a) * r)); m.scale.setScalar(rand(.12, .3)); world.add(m);
+      D.motes.push({ mesh: m, vel: V3(-Math.sin(a), 0, Math.cos(a)).multiplyScalar(rand(4, 8)) });
+    }
+  }
+  for (let i = D.motes.length - 1; i >= 0; i--) {
+    const mo = D.motes[i], r = D.pulling ? pull(mo.mesh.position, mo.vel, dt) : 0;
+    mo.mesh.quaternion.copy(camera.quaternion);
+    if (r < D.coreR * 1.1) { world.remove(mo.mesh); mo.mesh.material.dispose(); D.motes.splice(i, 1); }
+  }
+  for (let i = D.chunks.length - 1; i >= 0; i--) {
+    const c = D.chunks[i], m = c.mesh;
+    if (!c.free) { if (D.t > c.ripAt) { c.free = true; c.vel.set(rand(-.5, .5), rand(1.5, 3.5), rand(-.5, .5)); } else continue; }
+    const r = D.pulling ? pull(m.position, c.vel, dt) : 0;
+    m.rotation.x += c.spin.x * dt; m.rotation.y += c.spin.y * dt; m.rotation.z += c.spin.z * dt;
+    m.scale.setScalar(clamp(r / (D.coreR * 3), .1, 1));
+    if (r < D.coreR * 1.05) { consume(m.position); world.remove(m); D.chunks.splice(i, 1); }
+  }
+  // collapse: the singularity swallows whatever is left and snaps shut
+  if (tCol > DOM.collapse && !D.done) {
+    D.done = true;
+    for (const c of D.chunks) world.remove(c.mesh); D.chunks.length = 0;
+    for (const m of D.motes) world.remove(m.mesh); D.motes.length = 0;
+    for (const d of debris) world.remove(d.mesh); debris.length = 0;
+    for (const v of villagers) if (v.alive) { v.alive = false; world.remove(v.group); }
+    for (const b of buildings) if (b.alive) { b.alive = false; world.remove(b.group); }
+    for (const t of trees) if (t.alive) { t.alive = false; world.remove(t.group); }
+    for (const tw of tornadoes) { tw.alive = false; world.remove(tw.g); tw.wind?.stop(); } tornadoes.length = 0;
+    world.remove(D.g); flashA = 1; shake = 1.3; boom(3, .3); blip(3000, .25, 'sine', .06);
+    shout(`${D.eaten.toLocaleString()} things erased`);
+  }
+  drawVoid(tClose);
+  if (tClose > DOM.close) {
+    vctx.clearRect(0, 0, VW, VH); domain = null;
+    for (const sp of splats) world.remove(sp.mesh); splats.length = 0;
+    boardGrp.visible = decoGrp.visible = true; riseT = 0; buildBoard(); buildCivilization(.4);
+    setTimeout(() => shout('They rebuild'), 600);
+  }
+}
+function drawVoid(tClose) {
+  const D = domain, full = Math.hypot(VW, VH) * 1.05;
+  let radius, cx = D.originPx.x, cy = D.originPx.y;
+  if (tClose > 0) { const k = clamp(tClose / DOM.close, 0, 1); radius = full * (1 - k * k); cx = D.bhPx.x; cy = D.bhPx.y; }
+  else { const k = clamp(D.t / 1.1, 0, 1); radius = full * (1 - Math.pow(1 - k, 3)); }
+  vctx.clearRect(0, 0, VW, VH);
+  if (radius < 2) return;
+  vctx.save();
+  vctx.beginPath(); vctx.arc(cx, cy, radius, 0, Math.PI * 2); vctx.clip();
+  vctx.fillStyle = '#03020c'; vctx.fillRect(0, 0, VW, VH);
+  vctx.translate(D.bhPx.x, D.bhPx.y); vctx.rotate(D.t * .04); vctx.scale(1 + D.t * .015, 1 + D.t * .015);
+  vctx.drawImage(voidArt, -D.artD / 2, -D.artD / 2);
+  vctx.setTransform(1, 0, 0, 1, 0, 0);
+  if (D.pulling) {   // streaks rushing into the singularity while it feeds
+    vctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < 70; i++) {
+      const a = i * 2.39996 + D.t * .3, ph = (D.t * (.6 + (i % 7) * .08) + i * .137) % 1, r = (1 - ph) * full * .8, len = 40 + (1 - ph) * 160;
+      vctx.strokeStyle = `rgba(210,225,255,${.25 * ph * D.strength / (1 + D.strength)})`; vctx.lineWidth = 1.5;
+      vctx.beginPath(); vctx.moveTo(D.bhPx.x + Math.cos(a) * r, D.bhPx.y + Math.sin(a) * r); vctx.lineTo(D.bhPx.x + Math.cos(a) * (r + len), D.bhPx.y + Math.sin(a) * (r + len)); vctx.stroke();
+    }
+    vctx.globalCompositeOperation = 'source-over';
+  }
+  vctx.restore();
+  if (radius < full * .98) {   // glowing rim of the domain while it expands / closes
+    vctx.save(); vctx.lineWidth = 8; vctx.shadowBlur = 40; vctx.shadowColor = '#9ec8ff'; vctx.strokeStyle = 'rgba(230,240,255,.9)';
+    vctx.beginPath(); vctx.arc(cx, cy, radius, 0, Math.PI * 2); vctx.stroke(); vctx.restore();
+  }
+}
+
+// ======================================================================
+// table pose, fit from where your flat hand touched the table
+//   camera space = OpenCV convention (x right, y down, z forward), cm
+//   table frame  = x right, y up (normal), z toward viewer; origin = village center
+// ======================================================================
+function makePose(b, O) {
+  const cb = Math.cos(b), sb = Math.sin(b);
+  return { b, O, ex: V3(1, 0, 0), ey: V3(0, -cb, -sb), ez: V3(0, sb, -cb) };
+}
+function camToTable(P, ps = pose) { const d = P.clone().sub(ps.O); return V3(ps.ex.dot(d), ps.ey.dot(d), ps.ez.dot(d)); }
+function tableToCam(W, ps = pose) { return ps.O.clone().addScaledVector(ps.ex, W.x).addScaledVector(ps.ey, W.y).addScaledVector(ps.ez, W.z); }
+function projectPx(W, ps = pose) { const P = tableToCam(W, ps); return { x: fpx*P.x/P.z + VW/2, y: fpx*P.y/P.z + VH/2, ok: P.z > 1 }; }
+function samplePoint(s, f = fpx) { return V3(s.u*s.ratio, s.v*s.ratio, f*s.ratio); }
+
+function fitTable(samples, f = fpx) {
+  const P = samples.map(s => samplePoint(s, f));
+  // prior on tilt from the palm normals MediaPipe reports
+  const nb = V3(); samples.forEach(s => nb.add(s.n)); nb.normalize();
+  let b0 = Math.atan2(-nb.z, -nb.y); if (!isFinite(b0)) b0 = .35; b0 = clamp(b0, -.1, 1.45);
+  const solve = pts => {
+    let best = null;
+    for (let b = -.2; b <= 1.55; b += .005) {
+      const n = V3(0, -Math.cos(b), -Math.sin(b));
+      const vals = pts.map(p => n.dot(p)), m = vals.reduce((a, v) => a + v, 0) / vals.length;
+      const cost = vals.reduce((a, v) => a + (v - m)**2, 0) / vals.length + 20 * (b - b0)**2;
+      if (!best || cost < best.cost) best = { b, cost, n, m };
+    }
+    return best;
+  };
+  let fit = solve(P);
+  if (P.length > 12) { // drop the worst 15% and refit
+    const res = P.map(p => Math.abs(fit.n.dot(p) - fit.m));
+    const cut = [...res].sort((a, b) => a - b)[Math.floor(res.length * .85)];
+    fit = solve(P.filter((p, i) => res[i] <= cut));
+  }
+  const C = P.reduce((a, p) => a.add(p), V3()).divideScalar(P.length);
+  const O = C.clone().addScaledVector(fit.n, -(fit.n.dot(C) - fit.m));
+  const ps = makePose(fit.b, O);
+  const fwd = P.map(p => camToTable(p, ps).z), fm = fwd.reduce((a, v) => a + v, 0) / fwd.length;
+  ps.spread = Math.sqrt(fwd.reduce((a, v) => a + (v - fm)**2, 0) / fwd.length);
+  ps.b0 = b0;
+  return ps;
+}
+function applyARCamera() {
+  const { O, ex, ey, ez } = pose;   // table axes in camera space → view matrix (flip y/z for three.js)
+  const V = new THREE.Matrix4().set(
+     ex.x,  ey.x,  ez.x,  O.x,
+    -ex.y, -ey.y, -ez.y, -O.y,
+    -ex.z, -ey.z, -ez.z, -O.z,
+     0, 0, 0, 1);
+  camera.matrixAutoUpdate = false;
+  camera.matrix.copy(V).invert(); camera.matrix.decompose(camera.position, camera.quaternion, camera.scale);
+  camera.updateMatrixWorld(true);
+  const n = 1, far = 5000;
+  camera.projectionMatrix.set(2*fpx/VW,0,0,0, 0,2*fpx/VH,0,0, 0,0,-(far+n)/(far-n),-2*far*n/(far-n), 0,0,-1,0);
+  camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+}
+const setFocal = () => { fpx = VW / (2 * Math.tan(THREE.MathUtils.degToRad(HFOV) / 2)); };
+
+// ======================================================================
+// stage layout
+// ======================================================================
+function fitStage() {
+  const w = innerWidth, h = innerHeight, aspect = mode === 'ar' ? VW/VH : w/h;
+  let sw, sh; if (w/h > aspect) { sw = w; sh = w/aspect; } else { sh = h; sw = h*aspect; }
+  Object.assign(stage.style, { width: sw+'px', height: sh+'px', left: (w-sw)/2+'px', top: (h-sh)/2+'px' });
+  renderer.setSize(sw, sh, false);
+  fx.width = calibCanvas.width = maskCanvas.width = voidCanvas.width = VW; fx.height = calibCanvas.height = maskCanvas.height = voidCanvas.height = VH;
+  if (mode === 'mouse' || mode === 'showcase') {
+    camera.aspect = sw/sh;
+    // on the start screen the village sits in the right half, beside the words
+    if (mode === 'showcase') { if (sw > 720) camera.setViewOffset(sw, sh, -sw * .2, sh * .02, sw, sh); else camera.setViewOffset(sw, sh, 0, sh * .33, sw, sh); }
+    else camera.clearViewOffset();
+    camera.updateProjectionMatrix();
+  }
+}
+addEventListener('resize', fitStage);
+
+// ======================================================================
+// hand tracking
+// ======================================================================
+let landmarker = null, lastVideoTime = -1, lastDetect = 0;
+let camStream = null;
+async function loadTracker(statusEl) {
+  if (landmarker) return;
+  statusEl.textContent = 'Loading the hand tracker…';
+  const { HandLandmarker, FilesetResolver } = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/vision_bundle.mjs');
+  const fs = await FilesetResolver.forVisionTasks('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm');
+  landmarker = await HandLandmarker.createFromOptions(fs, {
+    baseOptions: { modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task', delegate: 'GPU' },
+    runningMode: 'VIDEO', numHands: 2, minHandDetectionConfidence: .5, minHandPresenceConfidence: .5, minTrackingConfidence: .5,
+  });
+  statusEl.textContent = '';
+}
+// Ask for the sensor's native 4:3 mode: 16:9 crops off the top and bottom, and the
+// bottom is exactly where the table is. resizeMode 'none' stops Chrome from cropping.
+async function openWebcam(statusEl, deviceId) {
+  if (camStream) camStream.getTracks().forEach(t => t.stop());
+  statusEl.textContent = 'Waiting for camera permission…';
+  const id = deviceId ? { deviceId: { exact: deviceId } } : {};
+  try { camStream = await navigator.mediaDevices.getUserMedia({ video: { ...id, width: { ideal: 1920 }, height: { ideal: 1440 }, aspectRatio: { ideal: 4/3 }, resizeMode: 'none' }, audio: false }); }
+  catch { camStream = await navigator.mediaDevices.getUserMedia({ video: deviceId ? id : true, audio: false }); }
+  statusEl.textContent = '';
+  await attachStream(camStream);
+}
+async function attachStream(stream) {
+  video.srcObject = stream; await video.play();
+  await new Promise(r => { const ok = () => video.videoWidth ? r() : requestAnimationFrame(ok); ok(); });
+  VW = video.videoWidth; VH = video.videoHeight; camera.clearViewOffset();
+  stage.classList.toggle('mirror', $('mirrorChk').checked);   // a webcam feels natural mirrored
+  HFOV = VW / VH < 1.5 ? 78 : 70;   // a guess — tweak with the Camera FOV slider if the board looks skewed
+  setFocal(); lastVideoTime = -1; mode = 'ar';
+  const track = stream.getVideoTracks()[0];
+  $('camInfo').textContent = VW / VH < 1.5 ? `${VW} × ${VH}, the full sensor` : `${VW} × ${VH}, cropped to widescreen`;
+  const cams = (await navigator.mediaDevices.enumerateDevices()).filter(d => d.kind === 'videoinput');
+  $('camSel').innerHTML = cams.map(c => `<option value="${c.deviceId}">${(c.label || 'camera').replace(/</g, '')}</option>`).join('');
+  $('camSel').value = track.getSettings().deviceId || '';
+  fitStage(); syncFovUI(); startPlacement();
+}
+
+// One-Euro filter: heavy smoothing when still, responsive when moving
+const alphaFor = (cutoff, dt) => 1 / (1 + 1 / (2 * Math.PI * cutoff * dt));
+class Euro3 {
+  constructor(minC = 1.4, beta = .03) { this.minC = minC; this.beta = beta; this.x = null; this.dx = V3(); }
+  reset() { this.x = null; this.dx.set(0,0,0); }
+  filter(v, dt) {
+    if (!this.x) { this.x = v.clone(); return this.x; }
+    this.dx.lerp(v.clone().sub(this.x).divideScalar(dt), alphaFor(4, dt));
+    this.x.lerp(v, alphaFor(this.minC + this.beta * this.dx.length(), dt));
+    return this.x;
+  }
+}
+
+// Canonical adult hand segment lengths (cm). Foreshortening only shrinks a segment on
+// screen, so each gives an upper bound on depth — the smallest estimate is the best one.
+const CANON = [[0,5,9.2],[0,9,9.0],[0,13,8.5],[0,17,7.9],[5,17,6.9]];
+function depthRatio(px) {
+  let best = Infinity;
+  for (const [a, b, L] of CANON) { const d = Math.hypot(px[a].x-px[b].x, px[a].y-px[b].y); if (d > 3) best = Math.min(best, L/d); }
+  return best;
+}
+const PALM = [0,5,9,13,17];
+const FINGERS = [[8,6],[12,10],[16,14],[20,18]];
+function classify(wl) {
+  const d = (a, b) => Math.hypot(wl[a].x-wl[b].x, wl[a].y-wl[b].y, wl[a].z-wl[b].z);
+  const ps = d(0, 9);
+  const ext = FINGERS.map(([t, p]) => d(t, 0) > d(p, 0) * 1.15);
+  const [i, m, r, p] = ext, n = ext.filter(Boolean).length;
+  let g = 'other';
+  // Gojo's sign: index + middle up and crossed (their tips swap sides), ring + pinky down
+  const up = (t, pp) => d(t, 0) > d(pp, 0);
+  let crossed = false;
+  if (up(8, 6) && up(12, 10) && !r && !p) {
+    const lat = V3(wl[5].x-wl[17].x, wl[5].y-wl[17].y, wl[5].z-wl[17].z).normalize();
+    const side = (a, b) => V3(wl[a].x-wl[b].x, wl[a].y-wl[b].y, wl[a].z-wl[b].z).dot(lat);
+    crossed = side(8, 12) < side(5, 9) * .3 || d(8, 12) < ps * .16;
+  }
+  if (crossed) g = 'cross';
+  else if (d(4, 8) < ps * .32 && !(m && r && p)) g = 'pinch';
+  else if (n === 0) g = 'fist';
+  else if (n === 4) g = 'open';
+  else if (i && m && !r && !p) g = 'peace';
+  else if (i && !m && !r && p) g = 'horns';
+  else if (i && !m && !r && !p) g = 'point';
+  return { g, n, ext };
+}
+
+// invisible 3D proxy of each hand: casts real shadows onto the board
+const BONES = [[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[5,9],[9,10],[10,11],[11,12],[9,13],[13,14],[14,15],[15,16],[13,17],[17,18],[18,19],[19,20],[0,17]];
+const PALM_FILL = [[0,5],[0,9],[0,13],[0,17],[5,13],[9,17],[5,17]];
+const ghostMat = new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false });
+const sphereGeo = new THREE.SphereGeometry(1, 10, 8);
+
+function makeHand() {
+  const rig = new THREE.Group(); rig.visible = false; world.add(rig);
+  const nodes = [];
+  const addNode = (a, b, t, rcm) => { const m = new THREE.Mesh(sphereGeo, ghostMat); m.castShadow = true; rig.add(m); nodes.push({ m, a, b, t, rcm }); };
+  for (let i=0;i<21;i++) addNode(i, i, 0, .9);
+  for (const [a,b] of BONES) for (const t of [.33,.66]) addNode(a, b, t, .85);
+  for (const [a,b] of PALM_FILL) for (const t of [.25,.5,.75]) addNode(a, b, t, 1.4);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(.8, 1, 48), new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false, side: THREE.DoubleSide }));
+  ring.rotation.x = -Math.PI/2; ring.visible = false; world.add(ring);
+  const blob = new THREE.Mesh(partGeo, new THREE.MeshBasicMaterial({ map: decalTex, color: 0x000000, transparent: true, depthWrite: false }));
+  blob.rotation.x = -Math.PI/2; blob.visible = false; world.add(blob);
+  const tips = [4,8,12,16,20].map(() => { const m = new THREE.Mesh(partGeo, new THREE.MeshBasicMaterial({ map: softTex, transparent: true, depthWrite: false })); m.rotation.x = -Math.PI/2; m.visible = false; world.add(m); return m; });
+  const reticle = new THREE.Mesh(new THREE.RingGeometry(.9, 1, 48), new THREE.MeshBasicMaterial({ transparent: true, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending }));
+  reticle.rotation.x = -Math.PI/2; reticle.visible = false; world.add(reticle);
+  return {
+    rig, nodes, ring, blob, tips, reticle,
+    euro: Array.from({ length: 21 }, () => new Euro3()),
+    w: Array.from({ length: 21 }, () => V3()), prev: Array.from({ length: 21 }, () => V3()), vel: Array.from({ length: 21 }, () => V3()),
+    palm: V3(), palmPrev: V3(), palmVel: V3(), palmN: V3(0,-1,0),
+    seen: false, px: null, pc: { x: 0, y: 0 }, ratio: 1, g: 'none', n: 0, rawG: 'none', rawCount: 0, held: 0, lastG: 'none',
+    grabbed: null, downPeak: 0, slamCd: 0,
+  };
+}
+const hands = [makeHand(), makeHand()];
+let touchUser = 0, touchAuto = 0;      // cm offsets for contact height
+const heightCm = p => (p.y - floorAt(p)) * S + touchAuto - touchUser;
+
+function processHand(h, det, dt) {
+  const { px, wl } = det;
+  const cls = classify(wl);
+  if (cls.g === h.rawG) h.rawCount++; else { h.rawG = cls.g; h.rawCount = 1; }
+  if (h.rawCount >= 3 || !h.seen) h.g = cls.g;
+  h.n = cls.n; h.ext = cls.ext; h.px = px; h.pc = det.pc;
+  const ratio = depthRatio(px); if (!isFinite(ratio)) return false;
+  h.ratio = ratio;
+  const Z = fpx * ratio;
+  const wz = PALM.reduce((s, i) => s + wl[i].z, 0) / 5;
+  // palm normal (world landmarks are camera-aligned), oriented toward the camera
+  const a = V3(wl[5].x-wl[0].x, wl[5].y-wl[0].y, wl[5].z-wl[0].z), b = V3(wl[17].x-wl[0].x, wl[17].y-wl[0].y, wl[17].z-wl[0].z);
+  const n = a.cross(b).normalize(); const Ppalm = V3(det.pc.x - VW/2, det.pc.y - VH/2, fpx).multiplyScalar(ratio);
+  if (n.dot(Ppalm) > 0) n.negate(); h.palmN.copy(n);
+  if (!pose) { h.seen = true; return true; }
+  const fresh = !h.seen;
+  if (fresh) h.euro.forEach(e => e.reset());
+  const tablePts = px.map((p, i) => {
+    const z = Z + (wl[i].z - wz) * 100;
+    return camToTable(V3((p.x - VW/2) * z / fpx, (p.y - VH/2) * z / fpx, z));
+  });
+  for (let i=0;i<21;i++) {
+    const W = h.euro[i].filter(tablePts[i], dt).clone().divideScalar(S);
+    if (fresh) { h.prev[i].copy(W); h.vel[i].set(0,0,0); }
+    else { h.prev[i].copy(h.w[i]); h.vel[i].lerp(W.clone().sub(h.w[i]).divideScalar(dt), .55); }
+    h.w[i].copy(W);
+  }
+  const palm = PALM.reduce((s, i) => s.add(h.w[i]), V3()).divideScalar(5);
+  if (fresh) { h.palmPrev.copy(palm); h.palmVel.set(0,0,0); }
+  else { h.palmPrev.copy(h.palm); h.palmVel.lerp(palm.clone().sub(h.palm).divideScalar(dt), .6); }
+  h.palm.copy(palm);
+  h.seen = true;
+  return true;
+}
+function loseHand(h) {
+  if (h.grabbed) { killVillager(h.grabbed, V3(0, 1, 0)); h.grabbed = null; }
+  h.seen = false; h.rig.visible = h.ring.visible = h.blob.visible = h.reticle.visible = false;
+  h.tips.forEach(t => t.visible = false); h.g = h.lastG = 'none'; h.held = 0; h.downPeak = 0;
+}
+
+// ---------------- physical interaction ----------------
+function segDist(p, a, b) {
+  const abx = b.x - a.x, abz = b.z - a.z, L = abx*abx + abz*abz;
+  const t = L ? clamp(((p.x - a.x)*abx + (p.z - a.z)*abz) / L, 0, 1) : 0;
+  return Math.hypot(p.x - (a.x + abx*t), p.z - (a.z + abz*t));
+}
+const hits = { swipe: 0, crush: 0 };
+// a: previous position, b: current (units); vel units/s; hcm height in cm; rcm contact radius in cm
+function collide(a, b, vel, hcm, rcm) {
+  const hs = Math.hypot(vel.x, vel.z) * S, rU = rcm / S;
+  const push = V3(vel.x, 0, vel.z).clampLength(0, 8).multiplyScalar(.9);
+  for (const bl of buildings) {
+    if (!bl.alive || bl.grow < 1) continue;
+    if (segDist(bl.pos, a, b) > bl.radius + rU) continue;
+    const top = bl.height * S;
+    if (hcm > top + rcm * .5) continue;
+    if (hs > 40) { shatter(bl, push, .7); hits.swipe++; }
+    else if (hcm < top * .5) { shatter(bl, V3(0, -1, 0), .35); hits.crush++; }
+    else bl.wobble = 1;
+  }
+  for (const t of trees) {
+    if (!t.alive || t.grow < 1 || hcm > 2.2 || segDist(t.pos, a, b) > .3 + rU) continue;
+    destroyTree(t, hs > 30 ? push : V3()); if (hs > 30) hits.swipe++; else hits.crush++;
+  }
+  for (const v of villagers) {
+    if (!v.alive || v.state !== 'walk' || hcm > 1.6) continue;
+    if (segDist(v.group.position, a, b) > .22 + rU) continue;
+    if (hs > 30) killVillager(v, push.clone().multiplyScalar(rand(.8,1.3)).add(V3(0, rand(3,6), 0)));
+    else killVillager(v);
+  }
+}
+const CONTACT = [2,3,4, 6,7,8, 10,11,12, 14,15,16, 18,19,20, 0,5,9,13,17];
+const TIP = new Set([4,8,12,16,20]), PALMSET = new Set(PALM);
+
+function interact(h, dt) {
+  // every joint sweeps through space since the last frame, so fast swipes can't skip over things
+  for (const j of CONTACT) {
+    const a = h.prev[j], b = h.w[j];
+    const hcm = Math.min(heightCm(a), heightCm(b));
+    if (hcm > 8) continue;
+    collide(a, b, h.vel[j], hcm, PALMSET.has(j) ? 1.6 : TIP.has(j) ? 1.0 : 1.1);
+  }
+  // flat palm press covers its whole footprint
+  const ph = heightCm(h.palm);
+  if (ph < 8) collide(h.palmPrev, h.palm, h.palmVel, ph, 3.2);
+
+  // slam: fast downward motion that suddenly stops = you hit the table
+  const vy = h.palmVel.y * S;
+  h.downPeak = Math.max(h.downPeak * Math.pow(.02, dt), -vy);
+  h.slamCd -= dt;
+  if (h.downPeak > 45 && vy > -12 && ph < 9 && h.slamCd <= 0 && inBoard(h.palm, -2)) {
+    quake(h.palm, clamp(h.downPeak / 90, .8, 2) * (h.g === 'fist' ? 1.3 : 1));
+    // the table is where the hand stopped: nudge the contact calibration toward it
+    touchAuto -= clamp(ph, -6, 6) * .35;
+    h.downPeak = 0; h.slamCd = .4;
+  }
+  // the table is solid: if a flat palm reads well below it, correct the bias slowly
+  if (ph < -1.2 && h.g === 'open') touchAuto += (-1.2 - ph) * Math.min(1, dt * 2);
+
+  // pinch & throw
+  const pinch = h.w[4].clone().add(h.w[8]).multiplyScalar(.5);
+  const pinchVel = h.vel[4].clone().add(h.vel[8]).multiplyScalar(.5);
+  if (h.g === 'pinch') {
+    if (!h.grabbed && heightCm(pinch) < 4) {
+      let best = null, bd = 2.6 / S;
+      for (const v of villagers) if (v.alive && v.state === 'walk') { const d = dist2(v.group.position, pinch); if (d < bd) { bd = d; best = v; } }
+      if (best) { h.grabbed = best; best.state = 'held'; eek(); blip(1200); }
+    }
+    if (h.grabbed) { const g = h.grabbed.group; g.position.lerp(pinch.clone().setY(pinch.y - .2), .7); g.rotation.z = Math.sin(performance.now()/60) * .6; if (Math.random() < .08) eek(); }
+  } else if (h.grabbed) {
+    const v = h.grabbed; h.grabbed = null; v.state = 'walk';
+    killVillager(v, pinchVel.clone().clampLength(0, 22).add(V3(0, 1.5, 0)));
+    if (pinchVel.length() * S > 60) shout('YEET', false);
+  }
+
+  // spells: hold a pose over the board
+  h.held = h.g === h.lastG ? h.held + dt : 0;
+  const wantMeteor = h.g === 'peace', wantZap = h.g === 'horns';
+  const ready = wantMeteor ? CD.meteor <= 0 : wantZap ? CD.zap <= 0 : false;
+  const charging = (wantMeteor || wantZap) && ready && inBoard(h.palm, -3);
+  if (wantMeteor && !ready && h.held > .3) hint(`Meteor recharges in ${CD.meteor.toFixed(0)} s`);
+  if (charging && h.held > .5) {
+    if (wantMeteor) { castMeteor(h.palm); CD.meteor = METEOR_CD; } else { castLightning(h.palm); CD.zap = ZAP_CD; }
+    h.held = 0;
+  }
+  if (h.g === 'cross' && !domain) {
+    if (power.v < 100) { if (h.held > .3) hint(`Domain Expansion needs a full meter (${Math.floor(power.v)}%)`); }
+    else if (h.held > .65) { spend(100); castDomain({ x: h.pc.x, y: h.pc.y }); h.held = 0; }
+  }
+  detectSpin(h);
+  h.reticle.visible = charging;
+  if (charging) {
+    const c = Math.min(1, h.held / .5), t = clampToBoard(h.palm);
+    h.reticle.position.set(t.x, .04, t.z);
+    h.reticle.material.color.set(h.g === 'peace' ? 0xff5a1f : 0x9ef0ff); h.reticle.material.opacity = .35 + .65*c;
+    h.reticle.scale.setScalar((h.g === 'peace' ? 3.2 : 1.8) * (1.4 - c*.4));
+  }
+  h.lastG = h.g;
+}
+
+// markers so you can see exactly where the game thinks your hand is
+function updateHandVisuals(h) {
+  h.rig.visible = true;
+  for (const nd of h.nodes) { nd.m.position.lerpVectors(h.w[nd.a], h.w[nd.b], nd.t); nd.m.scale.setScalar(nd.rcm / S); }
+  const ph = heightCm(h.palm), near = inBoard(h.palm, -3);
+  h.ring.visible = near && ph < 30;
+  if (h.ring.visible) {
+    const contact = ph < 2.5;
+    h.ring.position.set(h.palm.x, floorAt(h.palm) + .03, h.palm.z);
+    h.ring.scale.setScalar((2.4 + Math.max(0, ph) * .3) / S);
+    h.ring.material.color.set(contact ? 0xff3b30 : 0xffffff); h.ring.material.opacity = contact ? .9 : .7 * (1 - ph/30);
+    h.blob.visible = true; h.blob.position.set(h.palm.x, floorAt(h.palm) + .02, h.palm.z);
+    h.blob.scale.setScalar((7 + Math.max(0, ph) * .25) / S); h.blob.material.opacity = .35 * (1 - clamp(ph/30, 0, 1));
+  } else h.blob.visible = false;
+  [4,8,12,16,20].forEach((j, k) => {
+    const m = h.tips[k], p = h.w[j], hc = heightCm(p);
+    m.visible = inBoard(p, -1) && hc < 10;
+    if (!m.visible) return;
+    m.position.set(p.x, floorAt(p) + .035, p.z);
+    m.scale.setScalar((1.1 + Math.max(0, hc) * .2) / S);
+    m.material.color.set(hc < 1.5 ? 0xff3b30 : 0xffe29a); m.material.opacity = .95 * (1 - Math.max(0, hc) / 10);
+  });
+}
+
+// draw your real hand back over the scene so it sits in front of the village
+function drawHandsOverlay(list, debug) {
+  fctx.clearRect(0, 0, VW, VH);
+  for (const h of list) {
+    const px = h.px, size = Math.hypot(px[0].x-px[9].x, px[0].y-px[9].y);
+    if (pose) {
+      mctx.globalCompositeOperation = 'source-over'; mctx.clearRect(0, 0, VW, VH);
+      mctx.lineCap = mctx.lineJoin = 'round'; mctx.strokeStyle = mctx.fillStyle = '#000';
+      mctx.beginPath(); [0,1,2,5,9,13,17].forEach((i, k) => k ? mctx.lineTo(px[i].x, px[i].y) : mctx.moveTo(px[i].x, px[i].y)); mctx.closePath(); mctx.fill();
+      for (const [a, b] of BONES) { mctx.lineWidth = size * (a === 0 ? .42 : b % 4 === 0 ? .21 : .27); mctx.beginPath(); mctx.moveTo(px[a].x, px[a].y); mctx.lineTo(px[b].x, px[b].y); mctx.stroke(); }
+      mctx.globalCompositeOperation = 'source-in'; mctx.drawImage(video, 0, 0, VW, VH);
+      fctx.drawImage(maskCanvas, 0, 0);
+    }
+    const glow = h.g === 'peace' ? '#ff5a1f' : h.g === 'horns' ? '#9ef0ff' : h.g === 'fist' ? '#ff3030' : h.g === 'cross' ? '#b48cff' : null;
+    if (h.spinTurns > .6 && h.spinBuf?.length > 2) {   // the swirl you're drawing with your fingertip
+      fctx.save(); fctx.globalCompositeOperation = 'lighter'; fctx.lineCap = fctx.lineJoin = 'round';
+      fctx.lineWidth = 4 + h.spinTurns * 4; fctx.shadowBlur = 24; fctx.shadowColor = fctx.strokeStyle = power.v >= TORNADO_COST ? `rgba(220,210,190,${Math.min(1, h.spinTurns / 1.5)})` : 'rgba(255,90,60,.6)';
+      fctx.beginPath(); h.spinBuf.forEach((p, k) => k ? fctx.lineTo(p.x, p.y) : fctx.moveTo(p.x, p.y)); fctx.stroke(); fctx.restore();
+    }
+    if (h.g === 'cross' && !domain && pose && power.v >= 100) {   // charge ring around the hand
+      const c = Math.min(1, h.held / .65), R0 = size * 1.6;
+      fctx.save(); fctx.globalCompositeOperation = 'lighter'; fctx.lineWidth = 6; fctx.shadowBlur = 30; fctx.shadowColor = fctx.strokeStyle = '#c9b4ff';
+      fctx.beginPath(); fctx.arc(h.pc.x, h.pc.y, R0, -Math.PI/2, -Math.PI/2 + c * Math.PI * 2); fctx.stroke(); fctx.restore();
+    }
+    if (glow || debug || !pose) {
+      fctx.save(); fctx.globalCompositeOperation = 'lighter'; fctx.lineCap = 'round';
+      fctx.shadowBlur = 24; fctx.shadowColor = fctx.strokeStyle = glow || '#ffe29a'; fctx.lineWidth = 3; fctx.globalAlpha = .75;
+      fctx.beginPath(); for (const [a, b] of BONES) { fctx.moveTo(px[a].x, px[a].y); fctx.lineTo(px[b].x, px[b].y); } fctx.stroke();
+      fctx.restore();
+    }
+  }
+}
+
+// ======================================================================
+// placement flow
+// ======================================================================
+let placing = false, samples = [], lastSampleT = 0, riseT = 1;
+const NEED = 70;
+let phase = null;                   // 'sweep' → 'clear' → 'edge'
+let fitPose = null;                 // table plane from the sweep (origin = sweep centroid, x = camera-right)
+let placeOff = { x: 0, z: 0, yaw: 0 };   // village center + turn on that plane (cm, radians)
+let noHandFrames = 0, clearStart = 0, tableMap = null, edgePx = null;
+function loadSaved() { try { const s = JSON.parse(localStorage.getItem('tt-place')); if (s && s.VW === VW && s.VH === VH && s.samples?.length) return s; } catch {} return null; }
+function save() { try { localStorage.setItem('tt-place', JSON.stringify({ VW, VH, hfov: HFOV, wcm: S * BASE.w, aspect: BASE.w / BASE.d, off: placeOff, samples: samples.map(s => ({ ...s, n: s.n.toArray() })) })); } catch {} }
+// the sweep frame, moved to (x,z) and turned by yaw around the table normal
+function framePose(ps, x, z, yaw) {
+  const c = Math.cos(yaw), sn = Math.sin(yaw);
+  const out = { b: ps.b, b0: ps.b0, spread: ps.spread, O: tableToCam(V3(x, 0, z), ps), ey: ps.ey.clone(),
+    ex: ps.ex.clone().multiplyScalar(c).addScaledVector(ps.ez, -sn), ez: ps.ex.clone().multiplyScalar(sn).addScaledVector(ps.ez, c) };
+  return out;
+}
+
+function startPlacement() {
+  $('abilities').classList.add('hidden');
+  placing = true; phase = 'sweep'; samples = []; pose = fitPose = null; world.visible = false; touchAuto = 0; tableMap = edgePx = null;
+  hands.forEach(loseHand); cctx.clearRect(0, 0, VW, VH); showEdgeHandles(false);
+  $('place').classList.remove('hidden'); $('settings').classList.add('hidden'); $('settingsBtn').classList.add('hidden'); $('legend').classList.add('hidden');
+  $('placeTitle').textContent = 'Show me the table';
+  $('placeText').innerHTML = 'Lay a hand <b>flat on the table</b> and slowly slide it around, side to side and toward and away from you.';
+  $('placeNow').textContent = 'That’s enough'; $('placeNow').disabled = true; $('placeNow').classList.remove('primary'); $('placeNow').classList.remove('hidden');
+  $('placeBar').parentElement.classList.remove('hidden'); $('placeBar').style.width = '0%'; $('placeHint').textContent = 'Waiting for a flat hand';
+  $('useLast').classList.toggle('hidden', !loadSaved());
+}
+let legendTimer = 0;
+function launchWorld() {
+  $('abilities').classList.remove('hidden');
+  $('legend').classList.remove('gone'); clearTimeout(legendTimer); legendTimer = setTimeout(() => $('legend').classList.add('gone'), 20000);
+  placing = false; phase = null; cctx.clearRect(0, 0, VW, VH); showEdgeHandles(false);
+  $('place').classList.add('hidden'); $('settingsBtn').classList.remove('hidden'); $('legend').classList.remove('hidden');
+  hands.forEach(loseHand);
+  world.visible = true; riseT = 0; buildBoard(); buildCivilization(.7);
+  shout('A village rises'); boom(1, .45);
+}
+function collectSample(now) {
+  const h = hands.find(h => h.seen && h.n >= 3 && h.g !== 'pinch');
+  if (!h) { $('placeHint').textContent = hands.some(h => h.seen) ? 'Flatten your hand on the table' : 'Waiting for a flat hand'; return; }
+  if (now - lastSampleT < 30) return; lastSampleT = now;
+  samples.push({ u: h.pc.x - VW/2, v: h.pc.y - VH/2, ratio: h.ratio, n: h.palmN.clone() });
+  if (samples.length > 200) samples.shift();
+  $('placeBar').style.width = (Math.min(1, samples.length / NEED) * 100) + '%';
+  $('placeNow').disabled = samples.length < 20;
+  let preview = null;
+  if (samples.length >= 15) {
+    preview = fitTable(samples);
+    $('placeHint').textContent = preview.spread < 2.5 && samples.length > 30 ? 'Now slide it toward and away from you' : 'Keep sliding it around';
+  }
+  drawSweep(preview);
+  if (samples.length >= NEED) beginClear(now);
+}
+function beginClear(now = performance.now()) {
+  fitPose = fitTable(samples); phase = 'clear'; clearStart = now; noHandFrames = 0;
+  $('placeTitle').textContent = 'Found it';
+  $('placeText').innerHTML = 'Now <b>take your hands off the table</b> for a second so the camera can see it.';
+  $('placeHint').textContent = ''; $('placeNow').disabled = true;
+}
+function collectClear(now) {
+  noHandFrames = hands.some(h => h.seen) ? 0 : noHandFrames + 1;
+  if (noHandFrames > 8 || now - clearStart > 3500) beginEdge();
+}
+function drawSweep(ps) {
+  cctx.clearRect(0, 0, VW, VH);
+  for (const s of samples) { cctx.fillStyle = 'rgba(220,155,118,.9)'; cctx.beginPath(); cctx.arc(s.u + VW/2, s.v + VH/2, 4, 0, 7); cctx.fill(); }
+  if (!ps) return;
+  cctx.strokeStyle = 'rgba(231,233,221,.3)'; cctx.lineWidth = 1.5;   // a grid painted on the plane found so far
+  for (let t = -40; t <= 40; t += 8) {
+    const a = projectPx(V3(t, 0, -30), ps), b = projectPx(V3(t, 0, 30), ps), c = projectPx(V3(-40, 0, t * .75), ps), d = projectPx(V3(40, 0, t * .75), ps);
+    if (a.ok && b.ok) { cctx.beginPath(); cctx.moveTo(a.x, a.y); cctx.lineTo(b.x, b.y); cctx.stroke(); }
+    if (c.ok && d.ok) { cctx.beginPath(); cctx.moveTo(c.x, c.y); cctx.lineTo(d.x, d.y); cctx.stroke(); }
+  }
+}
+
+// ---------- what counts as table ----------
+// The sweep tells us what the table looks like (color + texture, compared as a ratio so
+// speckled granite or wood grain count as table near and far). Everything else is "not table".
+const scanC = document.createElement('canvas'), scanX = scanC.getContext('2d', { willReadFrequently: true });
+function buildTableMap() {
+  const gw = 120, gh = Math.max(8, Math.round(gw * VH / VW)), cw = VW / gw, ch = VH / gh, N = gw * gh;
+  scanC.width = gw; scanC.height = gh; scanX.drawImage(video, 0, 0, gw, gh);
+  const d = scanX.getImageData(0, 0, gw, gh).data;
+  const R = new Float32Array(N), G = new Float32Array(N), B = new Float32Array(N), L = new Float32Array(N);
+  for (let i = 0; i < N; i++) { R[i] = d[i*4]; G[i] = d[i*4+1]; B[i] = d[i*4+2]; L[i] = .299*R[i] + .587*G[i] + .114*B[i]; }
+  const at = (x, y) => clamp(y, 0, gh-1) * gw + clamp(x, 0, gw-1);
+  const tex = new Float32Array(N), sR = new Float32Array(N), sG = new Float32Array(N), sB = new Float32Array(N);
+  for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+    let e = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const i = at(x+dx, y+dy); e += Math.abs(L[at(x+dx+1, y+dy)] - L[i]) + Math.abs(L[at(x+dx, y+dy+1)] - L[i]); }
+    let r = 0, g = 0, b = 0; for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) { const i = at(x+dx, y+dy); r += R[i]; g += G[i]; b += B[i]; }
+    const i = y*gw + x; tex[i] = e / 9; sR[i] = r/25; sG[i] = g/25; sB[i] = b/25;
+  }
+  const cellOf = (u, v) => at(Math.floor(u / cw), Math.floor(v / ch));
+  const ref = [...new Set(samples.map(s => cellOf(s.u + VW/2, s.v + VH/2)))];
+  const med = a => { const b = [...a].sort((x, y) => x - y); return b[b.length >> 1]; };
+  const mr = med(ref.map(i => sR[i])), mg = med(ref.map(i => sG[i])), mb = med(ref.map(i => sB[i])), mt = med(ref.map(i => tex[i]));
+  const cS = Math.max(24, med(ref.map(i => Math.hypot(sR[i]-mr, sG[i]-mg, sB[i]-mb))) * 3);
+  const raw = new Uint8Array(N);
+  for (let i = 0; i < N; i++) raw[i] = (Math.hypot(sR[i]-mr, sG[i]-mg, sB[i]-mb) / cS + Math.abs(Math.log((tex[i] + 3) / (mt + 3))) / Math.log(4)) > 1.1 ? 1 : 0;
+  const bad = new Uint8Array(N);   // majority vote over 3x3 so lone specks don't count
+  for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) {
+    let n = 0; for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) n += raw[at(x+dx, y+dy)];
+    bad[y*gw + x] = n >= 4 ? 1 : 0;
+  }
+  return { gw, gh, cw, ch, bad, cellOf, isBad: (u, v) => u < 0 || v < 0 || u >= VW || v >= VH ? 1 : bad[cellOf(u, v)] };
+}
+
+// ---------- the desk edge ----------
+// Walk up each column from where the hand slid until the table stops; fit a line to those
+// stopping points (RANSAC, so arms and mugs don't drag it off).
+function detectEdge(map) {
+  const { gw, gh, bad } = map;
+  const startRow = Math.floor(samples.reduce((a, s) => a + s.v + VH/2, 0) / samples.length / map.ch);
+  const pts = [];
+  for (let x = 0; x < gw; x++) {
+    if (bad[startRow * gw + x]) continue;
+    let y = startRow;
+    while (y > 1 && !(bad[(y-1)*gw + x] && bad[(y-2)*gw + x])) y--;
+    if (y > 1) pts.push([x, y]);
+  }
+  let best = null;
+  for (let it = 0; it < 300 && pts.length >= 6; it++) {
+    const a = pick(pts), b = pick(pts); if (a[0] === b[0]) continue;
+    const m = (b[1] - a[1]) / (b[0] - a[0]); if (Math.abs(m) > .6) continue;
+    const inl = pts.filter(p => Math.abs(a[1] + m * (p[0] - a[0]) - p[1]) < 1.5);
+    if (!best || inl.length > best.length) best = inl;
+  }
+  if (!best || best.length < 8) {   // no clear edge: put the line just past the far end of the sweep
+    const v = Math.max(VH * .05, Math.min(...samples.map(s => s.v + VH/2)) - VH * .06);
+    return [{ x: VW * .1, y: v }, { x: VW * .9, y: v }];
+  }
+  const n = best.length, sx = best.reduce((a, p) => a + p[0], 0), sy = best.reduce((a, p) => a + p[1], 0);
+  const sxx = best.reduce((a, p) => a + p[0] * p[0], 0), sxy = best.reduce((a, p) => a + p[0] * p[1], 0);
+  const m = (n * sxy - sx * sy) / (n * sxx - sx * sx || 1), c = (sy - m * sx) / n;
+  const x0 = Math.min(...best.map(p => p[0])), x1 = Math.max(...best.map(p => p[0]));
+  // the 5x5 color smoothing blurs the boundary ~1.5 cells toward the table, so nudge it back out
+  return [x0, x1].map(x => ({ x: (x + .5) * map.cw, y: (m * x + c - 1.5) * map.ch }));
+}
+// where a video pixel lands on the table (cm, sweep frame)
+function pxToTable(u, v, ps = fitPose) {
+  const dir = V3((u - VW/2) / fpx, (v - VH/2) / fpx, 1), den = ps.ey.dot(dir);
+  if (Math.abs(den) < 1e-6) return null;
+  const t = ps.ey.dot(ps.O) / den; if (t <= 0) return null;
+  return camToTable(dir.multiplyScalar(t), ps);
+}
+// Fill everything between the desk edge and the camera: the biggest rectangle, flush with the
+// edge, that stays in view and on table.
+function fillFromEdge(map, A, B) {
+  const a = pxToTable(A.x, A.y), b = pxToTable(B.x, B.y);
+  if (!a || !b) return null;
+  let e = b.clone().sub(a).setY(0); if (e.x < 0) e.negate(); e.normalize();
+  const inward = V3(-e.z, 0, e.x);                       // perpendicular, pointing toward the camera
+  const mid = a.clone().add(b).multiplyScalar(.5).setY(0).addScaledVector(inward, 1.2);   // sit just inside the edge
+  const seen = (u, v) => { const p = projectPx(mid.clone().addScaledVector(e, u).addScaledVector(inward, v), fitPose);
+    return p.ok && p.x > VW * .005 && p.x < VW * .995 && p.y > VH * .005 && p.y < VH * .995 && !map.isBad(p.x, p.y); };
+  // For each depth, mark which spots along the edge are visible table (1 cm steps). Gaps shorter
+  // than GAP (a mug, a phone) get bridged; bigger ones mean the desk really ends or something big
+  // is there. Keep a running AND down the rows and take the widest run → biggest rectangle.
+  const GAP = 15, U = 200;
+  const rows = [];
+  for (let v = 2, emptyRows = 0; v <= 160; v++) {
+    const row = new Uint8Array(2 * U + 1); let n = 0;
+    for (let k = 0; k <= 2 * U; k++) if (seen(k - U, v)) { row[k] = 1; n++; }
+    if (!n) { if (++emptyRows > GAP && v > 6) break; continue; }
+    emptyRows = 0;
+    for (let k = 0, last = -1; k <= 2 * U; k++) if (row[k]) { if (last >= 0 && k - last - 1 <= GAP) row.fill(1, last + 1, k); last = k; }
+    rows.push({ v, row, n: row.reduce((a, b) => a + b, 0) });
+  }
+  // right at the line the table is blurred together with whatever is beyond the desk; the line
+  // itself says that's table, so start checking once rows look like solid table
+  const peak = Math.max(0, ...rows.slice(0, 20).map(r => r.n));
+  const start = rows.findIndex(r => r.n >= peak * .6);
+  let and = null, best = null;
+  for (const { v, row } of rows.slice(Math.max(0, start))) {
+    and = and ? and.map((a, k) => a & row[k]) : row;
+    let run = 0, bestRun = 0, end = 0;
+    for (let k = 0; k <= 2 * U; k++) { run = and[k] ? run + 1 : 0; if (run > bestRun) { bestRun = run; end = k; } }
+    if (bestRun < 12) break;
+    const area = bestRun * v;
+    if (!best || area > best.area) best = { area, w: bestRun, depth: v, L: end - bestRun + 1 - U };
+  }
+  if (!best || best.depth < 8) return null;
+  let { w, depth, L: l0 } = best;
+  if (w / depth > 4.5) { const w2 = depth * 4.5; l0 += (w - w2) / 2; w = w2; }       // keep it from becoming a thin strip
+  const c = mid.clone().addScaledVector(e, l0 + w / 2).addScaledVector(inward, depth / 2);
+  return { cx: c.x, cz: c.z, yaw: Math.atan2(-e.z, e.x), wcm: w, aspect: w / depth };
+}
+function beginEdge() {
+  phase = 'edge'; tableMap = buildTableMap(); edgePx = detectEdge(tableMap);
+  $('placeTitle').textContent = 'Line up the edge of your desk';
+  $('placeText').innerHTML = 'Drag the two dots until the line sits on the <b>far edge of your desk</b>. The village fills everything between that line and the camera.';
+  $('placeBar').parentElement.classList.add('hidden'); $('placeHint').textContent = '';
+  $('placeNow').textContent = 'Build the village'; $('placeNow').classList.add('primary'); $('placeNow').disabled = false;
+  showEdgeHandles(true);
+}
+const edgeHandles = [0, 1].map(i => {
+  const h = document.createElement('div'); h.className = 'handle hidden'; stage.appendChild(h);
+  h.onpointerdown = e => { e.stopPropagation(); h.setPointerCapture(e.pointerId); };
+  h.onpointermove = e => { if (!h.hasPointerCapture(e.pointerId) || !edgePx) return; edgePx[i] = stageToVideo(e.clientX, e.clientY); placeHandles(); };
+  return h;
+});
+function placeHandles() { edgeHandles.forEach((h, i) => { if (!edgePx) return; h.style.left = edgePx[i].x / VW * 100 + '%'; h.style.top = edgePx[i].y / VH * 100 + '%'; }); }
+function showEdgeHandles(on) { edgeHandles.forEach(h => h.classList.toggle('hidden', !on)); if (on) placeHandles(); }
+function drawEdge() {
+  cctx.clearRect(0, 0, VW, VH);
+  const { gw, gh, cw, ch, bad } = tableMap;
+  cctx.fillStyle = 'rgba(190,201,175,.09)';
+  for (let y = 0; y < gh; y++) for (let x = 0; x < gw; x++) if (!bad[y*gw + x]) cctx.fillRect(x*cw, y*ch, cw, ch);
+  const [A, B] = edgePx, dx = B.x - A.x, dy = B.y - A.y;
+  cctx.save(); cctx.strokeStyle = '#e7e9dd'; cctx.lineWidth = 3; cctx.shadowBlur = 6; cctx.shadowColor = 'rgba(0,0,0,.6)';
+  cctx.beginPath(); cctx.moveTo(A.x - dx * 3, A.y - dy * 3); cctx.lineTo(B.x + dx * 3, B.y + dy * 3); cctx.stroke(); cctx.restore();
+  const fit = fillFromEdge(tableMap, A, B); edgeFit = fit;
+  if (!fit) return;
+  const pz = framePose(fitPose, fit.cx, fit.cz, fit.yaw), hw = fit.wcm / 2, hd = fit.wcm / fit.aspect / 2;
+  const q = [V3(-hw,0,-hd), V3(hw,0,-hd), V3(hw,0,hd), V3(-hw,0,hd)].map(w => projectPx(w, pz));
+  const pulse = .5 + .5 * Math.sin(performance.now() / 150);
+  cctx.fillStyle = `rgba(220,155,118,${.14 + .08 * pulse})`; cctx.strokeStyle = '#dc9b76'; cctx.lineWidth = 3; cctx.setLineDash([14, 10]);
+  cctx.beginPath(); q.forEach((c, i) => i ? cctx.lineTo(c.x, c.y) : cctx.moveTo(c.x, c.y)); cctx.closePath(); cctx.fill(); cctx.stroke(); cctx.setLineDash([]);
+  cctx.fillStyle = '#e7e9dd'; cctx.font = `500 ${Math.round(VH / 24)}px 'EB Garamond', Georgia, serif`; cctx.textAlign = 'center';
+  const c = projectPx(V3(0, 0, 0), pz); cctx.fillText(`${Math.round(fit.wcm)} × ${Math.round(fit.wcm / fit.aspect)} cm`, c.x, c.y);
+}
+let edgeFit = null;
+function placeVillage(x, z, yaw, wcm, aspect = BASE.w / BASE.d) {
+  placeOff = { x, z, yaw }; $('size').value = Math.round(clamp(wcm, 18, 250));
+  if (Math.abs(wcm - BASE.w * S) > .01 || Math.abs(aspect - BASE.w / BASE.d) > .001) setBoardSize(wcm, aspect);
+  pose = framePose(fitPose, x, z, yaw); applyARCamera();
+}
+function buildFromEdge() {
+  const f = fillFromEdge(tableMap, edgePx[0], edgePx[1]) || { cx: 0, cz: 0, yaw: 0, wcm: 40, aspect: 1.5 };
+  placeVillage(f.cx, f.cz, f.yaw, f.wcm, f.aspect); save(); launchWorld();
+}
+function finishPlacement(fromSaved) {
+  if (fromSaved) {
+    const s = loadSaved(); samples = s.samples.map(o => ({ ...o, n: V3(...o.n) })); HFOV = s.hfov || HFOV; setFocal(); syncFovUI();
+    fitPose = fitTable(samples); placeVillage(s.off?.x || 0, s.off?.z || 0, s.off?.yaw || 0, s.wcm || 60, s.aspect || 1.5); return launchWorld();
+  }
+  if (phase === 'edge') return buildFromEdge();
+  if (samples.length >= 20) beginClear();
+}
+function stageToVideo(clientX, clientY) {
+  const r = stage.getBoundingClientRect();
+  let u = (clientX - r.left) / r.width; const v = (clientY - r.top) / r.height;
+  if (stage.classList.contains('mirror')) u = 1 - u;
+  return { x: u * VW, y: v * VH };
+}
+// drag the village around the table; scroll to resize it
+let drag = null;
+const rayToTable = (cx, cy) => { const p = stageToVideo(cx, cy); return pxToTable(p.x, p.y); };
+addEventListener('pointerdown', e => {
+  if (mode !== 'ar' || !pose || placing || e.target.closest?.('.panel, button')) return;
+  const w = rayToTable(e.clientX, e.clientY); if (!w) return;
+  drag = { dx: placeOff.x - w.x, dz: placeOff.z - w.z };
+});
+addEventListener('pointermove', e => {
+  if (!drag) return;
+  const w = rayToTable(e.clientX, e.clientY); if (!w) return;
+  placeVillage(w.x + drag.dx, w.z + drag.dz, placeOff.yaw, S * BASE.w);
+});
+addEventListener('pointerup', () => { if (drag) { drag = null; save(); } });
+addEventListener('wheel', e => {
+  if (mode !== 'ar' || !pose || placing || e.target.closest?.('.panel')) return;
+  placeVillage(placeOff.x, placeOff.z, placeOff.yaw, clamp(S * BASE.w * Math.exp(-e.deltaY * .0015), 18, 250)); save();
+}, { passive: true });
+
+// ======================================================================
+// mouse fallback
+// ======================================================================
+const mouse = { x: 0, y: 0, down: false, pos: V3(), prev: null, vel: V3(), downAt: 0 };
+const raycaster = new THREE.Raycaster(), groundPlane = new THREE.Plane(V3(0,1,0), 0);
+function enableMouse() {
+  mode = 'mouse'; stage.classList.remove('mirror'); video.style.display = 'none'; VW = innerWidth; VH = innerHeight;
+  document.body.style.background = 'radial-gradient(circle at 50% 35%, #22382c, #101d17 75%)';
+  camera.matrixAutoUpdate = true; camera.position.set(0, 50, 64); camera.lookAt(0, -3, 0);
+  addEventListener('pointermove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+  addEventListener('pointerdown', e => { if (e.target.closest?.('.panel, button')) return; mouse.down = true; mouse.downAt = performance.now(); });
+  addEventListener('pointerup', () => { if (mouse.down && performance.now() - mouse.downAt < 250 && mouse.vel.length()*S < 30) quake(mouse.pos, 1.2); mouse.down = false; });
+  // same rules as with hands: meteor and lightning recharge, tornado and domain spend the meter
+  addEventListener('keydown', e => {
+    const k = e.key.toLowerCase();
+    if (k === 'm') { if (CD.meteor > 0) hint(`Meteor recharges in ${CD.meteor.toFixed(0)} s`); else { castMeteor(mouse.pos); CD.meteor = METEOR_CD; } }
+    if (k === 'l' && CD.zap <= 0) { castLightning(mouse.pos); CD.zap = ZAP_CD; }
+    if (k === 't') { if (power.v < TORNADO_COST) hint('Tornado needs half a meter. Keep smashing.'); else { spend(TORNADO_COST); castTornado(clampToBoard(mouse.pos), -1); } }
+    if (k === 'd' && !domain) { if (power.v < 100) hint(`Domain Expansion needs a full meter (${Math.floor(power.v)}%)`); else { spend(100); castDomain({ x: mouse.x / innerWidth * VW, y: mouse.y / innerHeight * VH }); } }
+  });
+  $('legend').innerHTML = '<h2>How to play</h2><dl><dt>Click the board</dt><dd>Earthquake</dd><dt>Drag across it fast</dt><dd>Knock it over</dd><dt>Press M</dt><dd>Meteor</dd><dt>Press L</dt><dd>Lightning</dd><dt>Press T</dt><dd>Tornado</dd><dt>Press D</dt><dd>Domain Expansion</dd></dl><p class="foot">Destruction fills the power meter, and quick chains multiply it. Tornado costs half a meter, Domain Expansion a full one.</p>';
+  [['slMeteor', 'Press M'], ['slZap', 'Press L'], ['slTornado', 'Press T'], ['slDomain', 'Press D']].forEach(([id, t]) => { $(id).querySelector('small').textContent = t; });
+  $('abilities').classList.remove('hidden');
+  $('settingsBtn').classList.remove('hidden');
+  fitStage(); setBoardSize(60, 1.5); world.visible = true; riseT = 0; buildCivilization(.7);
+}
+
+// ======================================================================
+// light matching: brightness + tint follow the real camera image
+// ======================================================================
+const lumC = document.createElement('canvas'); lumC.width = lumC.height = 8;
+const lumX = lumC.getContext('2d', { willReadFrequently: true });
+let lumT = 0, hemiTarget = 1.2, sunTarget = 2; const tint = new THREE.Color(1,1,1);
+function adaptLight(dt) {
+  if (domain) { hemiTarget = .35; sunTarget = .7; hemi.color.setRGB(.75, .8, 1); lumT = 0; }
+  hemi.intensity += (hemiTarget - hemi.intensity) * Math.min(1, dt*2);
+  sun.intensity += (sunTarget - sun.intensity) * Math.min(1, dt*2);
+  lumT -= dt; if (domain || lumT > 0 || mode !== 'ar' || video.readyState < 2) return; lumT = .5;
+  lumX.drawImage(video, 0, 0, 8, 8); const d = lumX.getImageData(0, 0, 8, 8).data;
+  let r = 0, g = 0, b = 0; for (let i=0;i<d.length;i+=4) { r += d[i]; g += d[i+1]; b += d[i+2]; }
+  r /= 64*255; g /= 64*255; b /= 64*255;
+  const lum = .299*r + .587*g + .114*b;
+  hemiTarget = .45 + lum * 1.5; sunTarget = .6 + lum * 2.4;
+  const m = Math.max(r, g, b, .01); tint.setRGB(r/m, g/m, b/m);
+  hemi.color.setRGB(1,1,1).lerp(tint, .3); sun.color.setRGB(1,1,1).lerp(tint, .2);
+}
+
+// ======================================================================
+// main loop
+// ======================================================================
+const clock = new THREE.Clock();
+const GL = { open: 'Open hand', fist: 'Fist', point: 'Pointing', peace: 'Peace sign', horns: 'Rock horns', pinch: 'Pinch', cross: 'Crossed fingers', other: 'Hand', none: '' };
+function onDetections(res, dt, now) {
+  const found = res.landmarks.map((lm, k) => {
+    const px = lm.map(l => ({ x: l.x * VW, y: l.y * VH }));
+    const pc = PALM.reduce((s, i) => ({ x: s.x + px[i].x/5, y: s.y + px[i].y/5 }), { x: 0, y: 0 });
+    return { px, pc, wl: res.worldLandmarks[k] };
+  });
+  // keep each tracked hand glued to the same state object across frames
+  const assign = [null, null];
+  for (const f of found) {
+    let best = -1, bd = Infinity;
+    hands.forEach((h, i) => { if (assign[i]) return; const d = h.seen ? Math.hypot(h.pc.x - f.pc.x, h.pc.y - f.pc.y) : 1e6 + i; if (d < bd) { bd = d; best = i; } });
+    if (best >= 0) assign[best] = f;
+  }
+  hands.forEach((h, i) => { if (!assign[i] || !processHand(h, assign[i], dt)) loseHand(h); });
+  const live = hands.filter(h => h.seen);
+  if (placing) { if (phase === 'sweep') collectSample(now); else if (phase === 'clear') collectClear(now); }
+  else if (pose) for (const h of live) { interact(h, dt); updateHandVisuals(h); }
+  if (hits.swipe) { boom(.6, 1.3); shake = Math.max(shake, .15); shout(pick(['Swipe', 'Bonk', 'Wham']), false); }
+  if (hits.crush) { boom(.5, .9); shout(pick(['Crunch', 'Squish', 'Flattened']), false); }
+  hits.swipe = hits.crush = 0;
+  drawHandsOverlay(live, $('debugChk').checked);
+}
+
+function tick() {
+  requestAnimationFrame(tick);
+  const dt = Math.min(clock.getDelta(), .05), now = performance.now();
+  eekT -= dt;
+  adaptLight(dt);
+
+  // a shared Desk View window can be resized: the picture's scale changes, so start over
+  if (mode === 'ar' && video.videoWidth && (video.videoWidth !== VW || video.videoHeight !== VH)) {
+    VW = video.videoWidth; VH = video.videoHeight; setFocal(); fitStage();
+    startPlacement();
+  }
+  if (mode === 'ar' && landmarker && video.readyState >= 2 && video.currentTime !== lastVideoTime) {
+    lastVideoTime = video.currentTime;
+    const res = landmarker.detectForVideo(video, now);
+    const ddt = clamp((now - (lastDetect || now - 33)) / 1000, 1/120, .1); lastDetect = now;
+    onDetections(res, ddt, now);
+  }
+  if (placing && phase === 'edge') drawEdge();
+
+  // HUD
+  if (world.visible) updatePowerHUD(dt);
+  if (mode === 'ar') {
+    const live = hands.filter(h => h.seen);
+    $('gesture').innerHTML = placing ? ''
+      : live.length ? live.map(h => { const up = Math.max(0, heightCm(h.palm)); return `${GL[h.g]}<small>${up < 2.5 ? 'Touching the table' : `${up.toFixed(0)} cm above the table`}</small>`; }).join('')
+      : 'No hands in view';
+    const idx = live[0] ? heightCm(live[0].w[8]).toFixed(1) : '—';
+    $('trackInfo').textContent = !$('debugChk').checked || !pose ? ''
+      : `tilt ${THREE.MathUtils.radToDeg(pose.b).toFixed(0)}° (palm prior ${THREE.MathUtils.radToDeg(pose.b0).toFixed(0)}°) · ${pose.O.z.toFixed(0)}cm away · auto touch ${touchAuto.toFixed(1)}cm · index ${idx}cm`;
+  }
+  if (mode === 'showcase') {
+    showcaseA += dt * .05;
+    const k = camera.aspect < 1 ? 2 : 1;   // portrait phones need the camera further back
+    camera.position.set(Math.sin(showcaseA) * 47 * k, 29 * k, Math.cos(showcaseA) * 47 * k); camera.lookAt(0, -1.5, 0);
+  }
+  if (mode === 'mouse') {
+    raycaster.setFromCamera(new THREE.Vector2(mouse.x/innerWidth*2-1, -(mouse.y/innerHeight)*2+1), camera);
+    const p = V3();
+    if (raycaster.ray.intersectPlane(groundPlane, p)) {
+      p.divideScalar(S);
+      const prev = mouse.prev || p.clone();
+      mouse.vel.lerp(p.clone().sub(prev).divideScalar(Math.max(dt, .001)), .6);
+      if (mouse.down && mouse.vel.length() * S > 40) collide(prev, p, mouse.vel, 0, 1.4);
+      if (hits.swipe) { boom(.6, 1.3); shake = Math.max(shake, .15); } hits.swipe = hits.crush = 0;
+      mouse.prev = p.clone(); mouse.pos.copy(p);
+    }
+    $('gesture').innerHTML = 'Playing with a mouse';
+  }
+
+  // board rising out of the table
+  if (riseT < 1) { riseT = Math.min(1, riseT + dt * 1.4); const e = 1 - Math.pow(1 - riseT, 3); boardGrp.scale.set(1, Math.max(.001, e), 1); decoGrp.scale.set(1, Math.max(.001, e), 1); }
+
+  // buildings / trees
+  for (const b of buildings) {
+    if (!b.alive) continue;
+    if (b.grow < 1) { b.grow = Math.min(1, b.grow + dt * 1.6); const k = Math.max(0, b.grow); b.group.scale.setScalar(Math.max(.001, k < 1 ? k * (1 + Math.sin(k * Math.PI) * .25) : 1)); }
+    if (b.wobble > 0) { b.wobble -= dt * 2; b.group.rotation.x = Math.sin(now/30) * .07 * b.wobble; b.group.rotation.z = Math.cos(now/34) * .07 * b.wobble; }
+    if (b.chimney && b.grow >= 1 && (b.smokeT -= dt) < 0) {
+      b.smokeT = rand(2, 5);
+      const c = b.chimney.clone().applyAxisAngle(V3(0,1,0), b.group.rotation.y).add(b.pos);
+      spawnParticle(c, { color: 0xd8d4cc, size: .18, vel: V3(rand(-.1,.1), .5, rand(-.1,.1)), life: 2.4, grow: 3, additive: false });
+    }
+    if (b.burning > 0) {
+      b.burning -= dt;
+      if (Math.random() < .5) spawnParticle(b.pos.clone().add(V3(rand(-.3,.3), rand(.3,1), rand(-.3,.3))), { color: pick([0xff7a1f,0xffd36b]), size: rand(.2,.4), vel: V3(0, rand(1,2), 0), life: .5 });
+      if (Math.random() < .2) spawnParticle(b.pos.clone().setY(1), { color: 0x333333, size: .4, vel: V3(rand(-.2,.2), 1.5, rand(-.2,.2)), life: 1.5, grow: 3, additive: false });
+      for (const p of b.parts) p.material.color.lerp(new THREE.Color(0x221a14), dt * .4);
+      if (b.burning <= 0) shatter(b, V3(), .3);
+    }
+    // towers shoot back at your hand
+    if (b.kind === 'tower' && b.grow >= 1) {
+      b.archerT -= dt;
+      const target = pose && hands.find(h => h.seen && heightCm(h.palm) < 22 && dist2(h.palm, b.pos) < 20 / S);
+      if (target && b.archerT < 0) { b.archerT = rand(1.2, 2.4); fireArrow(b.pos.clone().setY(b.height - .3), target.palm.clone()); }
+    }
+  }
+  for (const t of trees) if (t.alive && t.grow < 1) { t.grow = Math.min(1, t.grow + dt * 2); t.group.scale.setScalar(Math.max(.001, t.grow)); }
+
+  // villagers
+  let pop = 0;
+  const threats = pose ? hands.filter(h => h.seen && heightCm(h.palm) < 15).map(h => h.palm) : [];
+  if (mode === 'mouse') threats.push(mouse.pos);
+  const fleeR = 11 / S;
+  for (const v of villagers) {
+    if (!v.alive) continue; pop++;
+    const p = v.group.position;
+    if (v.state === 'held') continue;
+    if (v.twister) {   // riding the tornado up, then flung out the top
+      const tw = v.twister;
+      if (!tw.alive) v.twister = null;
+      else {
+        v.orbA += dt * (5 + 6 / (v.orbR + .5)); v.orbH += dt * rand(2.5, 4);
+        v.orbR = Math.min(tw.R * (.5 + v.orbH / tw.H * 1.4), v.orbR + dt * 1.5);
+        p.set(tw.pos.x + Math.cos(v.orbA) * v.orbR, v.orbH, tw.pos.z + Math.sin(v.orbA) * v.orbR);
+        v.group.rotation.x += dt * 10; v.group.rotation.z += dt * 8;
+        if (v.orbH > tw.H * .85) { v.vel.set(Math.cos(v.orbA) * 9, 5, Math.sin(v.orbA) * 9); v.twister = null; eek(); }
+        continue;
+      }
+    }
+    if (v.state === 'fly' && v.sucked && domain) {
+      const r = pull(p, v.vel, dt); v.group.rotation.x += dt * 14; v.group.rotation.z += dt * 11;
+      v.group.scale.setScalar(clamp(r / (domain.coreR * 3), .2, 1));
+      if (r < domain.coreR * 1.05) { v.alive = false; world.remove(v.group); consume(p); }
+      continue;
+    }
+    if (v.state === 'fly') {
+      v.vel.y -= 20 * dt; p.addScaledVector(v.vel, dt); v.group.rotation.x += dt * 12; v.group.rotation.z += dt * 9;
+      const fl = floorAt(p);
+      if (p.y <= fl && v.vel.y < 0) {
+        p.y = fl;
+        if (v.vel.length() > 7 || fl < 0) killVillager(v);
+        else { v.state = 'walk'; v.group.rotation.set(0, 0, 0); v.panic = 4; v.vel.set(0, 0, 0); }
+      }
+      continue;
+    }
+    let near = null, nd = fleeR;
+    for (const t of threats) { const d = dist2(p, t); if (d < nd) { nd = d; near = t; } }
+    if (near) { if (v.panic <= 0 && Math.random() < .2) eek(); v.panic = Math.max(v.panic, 1.2); }
+    v.panic -= dt; v.t -= dt;
+    if (v.panic > 0) {
+      const away = near ? V3(p.x - near.x, 0, p.z - near.z).normalize() : v.vel.clone().setY(0).normalize();
+      v.vel.lerp(away.multiplyScalar(1.9), .15);
+      p.y = Math.abs(Math.sin(now/50 + v.t)) * .05;
+    } else {
+      if (!v.target || v.t < 0 || dist2(p, v.target) < .2) {
+        const alive = buildings.filter(b => b.alive); v.t = rand(2, 6);
+        v.target = alive.length ? pick(alive).pos.clone().add(V3(rand(-.9,.9), 0, rand(-.9,.9))) : V3(rand(-6,6), 0, rand(-4,4));
+      }
+      v.vel.lerp(V3(v.target.x - p.x, 0, v.target.z - p.z).normalize().multiplyScalar(.45), .1);
+      p.y = Math.abs(Math.sin(now/120 + v.t)) * .02;
+    }
+    p.x = clamp(p.x + v.vel.x * dt, -BASE.w/2 + .4, BASE.w/2 - .4);
+    p.z = clamp(p.z + v.vel.z * dt, -BASE.d/2 + .4, BASE.d/2 - .4);
+    v.group.rotation.y = Math.atan2(v.vel.x, v.vel.z);
+  }
+
+  // civilization regrows
+  const aliveB = buildings.filter(b => b.alive);
+  if (world.visible && riseT >= 1 && !domain) {
+    const q = civQuota(), grow = Math.sqrt(q.houses / 15);
+    if (Math.random() < dt * .4 * grow && aliveB.length < q.houses + q.towers + q.temples && pop > 2) { const s = freeSpot(.55); if (s) makeBuilding(Math.random() < .12 ? 'tower' : 'house', s); }
+    if (Math.random() < dt * .7 * grow && pop < q.people * 1.5 && aliveB.length) { const b = pick(aliveB); makeVillager(b.pos.clone().add(V3(rand(-.6,.6), 0, rand(-.6,.6)))); }
+    if (pop === 0 && aliveB.length === 0 && !tick.wiped && score > 0) {
+      tick.wiped = true; shout('EXTINCT');
+      setTimeout(() => { riseT = 0; buildCivilization(.7); tick.wiped = false; shout('They rebuild'); }, 3500);
+    }
+  }
+  for (let i = buildings.length - 1; i >= 0; i--) if (!buildings[i].alive) buildings.splice(i, 1);
+  for (let i = villagers.length - 1; i >= 0; i--) if (!villagers[i].alive) villagers.splice(i, 1);
+  for (let i = trees.length - 1; i >= 0; i--) if (!trees[i].alive) trees.splice(i, 1);
+
+  // debris: lands on the board, or tumbles off its edge onto your table
+  for (let i = debris.length - 1; i >= 0; i--) {
+    const d = debris[i], m = d.mesh;
+    if (domain?.pulling) {
+      const r = pull(m.position, d.vel, dt); m.rotation.x += d.spin.x * dt * 2; m.rotation.z += d.spin.z * dt * 2;
+      m.scale.setScalar(clamp(r / (domain.coreR * 3), .15, 1));
+      if (r < domain.coreR * 1.05) { consume(m.position); world.remove(m); debris.splice(i, 1); }
+      continue;
+    }
+    for (const tw of tornadoes) if (vortex(m.position, d.vel, dt, tw)) d.life = Math.max(d.life, 1.5);
+    d.vel.y -= 22 * dt; m.position.addScaledVector(d.vel, dt);
+    m.rotation.x += d.spin.x * dt; m.rotation.y += d.spin.y * dt; m.rotation.z += d.spin.z * dt;
+    const onBoard = inBoard(m.position) && m.position.y > -.15;
+    const fl = (onBoard ? 0 : -thickU()) + d.s * .5;
+    if (m.position.y < fl) { m.position.y = fl; d.vel.y *= -.3; d.vel.x *= .6; d.vel.z *= .6; d.spin.multiplyScalar(.5); }
+    if (Math.abs(m.position.x) > BASE.w * .9 || Math.abs(m.position.z) > BASE.d * .9) d.life = Math.min(d.life, .6);
+    if (d.vel.lengthSq() > 25) for (const v of villagers) if (v.alive && v.state === 'walk' && v.group.position.distanceTo(m.position) < .2 + d.s) killVillager(v);
+    d.life -= dt; if (d.life < 1) m.scale.setScalar(Math.max(.001, d.life));
+    if (d.life <= 0) { world.remove(m); debris.splice(i, 1); }
+  }
+  // arrows
+  for (let i = arrows.length - 1; i >= 0; i--) {
+    const a = arrows[i]; a.t += dt / a.dur; const k = Math.min(1, a.t);
+    const p = a.from.clone().lerp(a.to, k); p.y += Math.sin(k * Math.PI) * a.arc;
+    const dir = p.clone().sub(a.mesh.position);
+    a.mesh.position.copy(p);
+    if (dir.lengthSq() > 1e-8) a.mesh.lookAt(world.localToWorld(p.clone().add(dir)));
+    if (Math.random() < .5) spawnParticle(p, { color: 0xffc070, size: .08, life: .25, grow: 0 });
+    if (k >= 1) {
+      world.remove(a.mesh); arrows.splice(i, 1);
+      for (let j=0;j<6;j++) spawnParticle(p, { color: 0xffe29a, size: .12, vel: V3(rand(-2,2), rand(-1,2), rand(-2,2)), life: .3, grow: 0 });
+      blip(2400, .05, 'triangle', .04);
+    }
+  }
+  // meteors / bolts
+  for (let i = meteors.length - 1; i >= 0; i--) {
+    const mt = meteors[i]; mt.t += dt / .9; const k = Math.min(mt.t, 1);
+    mt.mesh.position.lerpVectors(mt.from, mt.to, k * k); mt.mesh.rotation.x += dt * 5;
+    spawnParticle(mt.mesh.position, { color: pick([0xff7a1f,0xffd36b]), size: rand(.5,1), life: .4, grow: 1.5 });
+    spawnParticle(mt.mesh.position, { color: 0x333333, size: rand(.5,.9), life: 1.2, grow: 2, additive: false });
+    if (k >= 1) {
+      world.remove(mt.mesh); meteors.splice(i, 1);
+      blast(mt.to, 3, 1.4, { fire: true }); fireball(mt.to, 45, 1.4); shockwave(mt.to, 6.5); shockwave(mt.to, 4, 0xff5a1f);
+      for (let j=0;j<5;j++) splat(mt.to.clone().add(V3(rand(-1.3,1.3), 0, rand(-1.3,1.3))), 0x1a120c, rand(.5,1), 45);
+      flashA = .9; shake = 1; boom(3, .5); score += 150; shout('KABOOM');
+    }
+  }
+  updateDomain(dt); updateTornadoes(dt);
+  for (let i = bolts.length - 1; i >= 0; i--) { const b = bolts[i]; b.life -= dt; b.line.material.opacity = b.life/.35; b.light.intensity = 2200 * b.life/.35; if (b.life <= 0) { world.remove(b.line, b.light); bolts.splice(i, 1); } }
+  // particles / decals
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i]; p.life -= dt; const k = 1 - p.life / p.max;
+    if (p.ring) { p.mesh.scale.setScalar(.2 + k * p.ring); p.mesh.material.opacity = 1 - k; }
+    else { p.vel.y -= p.gravity * dt; p.mesh.position.addScaledVector(p.vel, dt); p.vel.multiplyScalar(1 - dt * 1.5); p.mesh.scale.setScalar(p.size * (1 + k * p.grow)); p.mesh.material.opacity = (1 - k) * (p.additive ? 1 : .65); p.mesh.quaternion.copy(camera.quaternion); }
+    if (p.life <= 0) { world.remove(p.mesh); p.mesh.material.dispose(); particles.splice(i, 1); }
+  }
+  for (let i = splats.length - 1; i >= 0; i--) { const s = splats[i]; s.life -= dt; if (s.life < 3) s.mesh.material.opacity = .85 * s.life / 3; if (s.life <= 0) { world.remove(s.mesh); splats.splice(i, 1); } }
+
+  // the board shakes on your table
+  shake *= Math.pow(.02, dt);
+  world.position.set((Math.random()-.5) * shake * .8, (Math.random()-.5) * shake * .3, (Math.random()-.5) * shake * .8);
+  world.scale.setScalar(S);
+  flashA *= Math.pow(.01, dt); flashEl.style.opacity = flashA;
+  if (shoutT > 0) { shoutT -= dt * 1.2; shoutEl.style.opacity = Math.min(1, shoutT * 2); shoutEl.style.transform = `translateY(${(1 - shoutT) * -16}px)`; }
+  $('pop').textContent = pop; $('bld').textContent = aliveB.length; $('score').textContent = score.toLocaleString();
+  renderer.render(scene, camera);
+}
+let firstArrow = true;
+function fireArrow(from, to) {
+  const g = new THREE.Group();
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(.015, .015, .35, 4), std(0x6b4423)); shaft.rotation.x = Math.PI/2; g.add(shaft);
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(.04, .08, 5), new THREE.MeshBasicMaterial({ color: 0xffe29a })); tip.rotation.x = Math.PI/2; tip.position.z = .2; g.add(tip);
+  g.position.copy(from); world.add(g);
+  to.add(V3(rand(-.3,.3), 0, rand(-.3,.3)));
+  arrows.push({ mesh: g, from, to, t: 0, dur: .55, arc: 1 + from.distanceTo(to) * .15 });
+  blip(900, .05, 'triangle', .03);
+  if (firstArrow) { firstArrow = false; shout('They fight back'); }
+}
+
+// ======================================================================
+// controls / boot
+// ======================================================================
+function syncFovUI() { $('fov').value = HFOV; $('fovV').textContent = HFOV + '°'; }
+$('settingsBtn').onclick = () => $('settings').classList.toggle('hidden');
+$('size').oninput = e => { if (pose) { placeVillage(placeOff.x, placeOff.z, placeOff.yaw, +e.target.value); save(); } else setBoardSize(+e.target.value); };
+$('touch').oninput = e => { touchUser = +e.target.value / 10; };
+$('fov').oninput = e => { HFOV = +e.target.value; setFocal(); syncFovUI(); if (pose && samples.length) { fitPose = fitTable(samples); placeVillage(placeOff.x, placeOff.z, placeOff.yaw, S * BASE.w); save(); } };
+$('mirrorChk').onchange = e => stage.classList.toggle('mirror', e.target.checked);
+$('debugChk').onchange = e => { if (gridH) gridH.visible = e.target.checked; };
+$('replace').onclick = () => { if (mode === 'ar') startPlacement(); };
+$('helpBtn').onclick = () => $('legend').classList.toggle('gone');
+$('reset').onclick = () => { riseT = 0; buildCivilization(.5); shout('A new age'); };
+$('camSel').onchange = e => openWebcam($('trackInfo'), e.target.value).catch(err => { $('trackInfo').textContent = `That camera didn’t start (${err.message}). Pick another one.`; });
+$('placeNow').onclick = () => finishPlacement(false);
+$('useLast').onclick = () => finishPlacement(true);
+
+function begin() { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); $('start')?.remove(); document.body.classList.remove('intro'); camera.clearViewOffset(); }
+let showcaseA = .6;
+function startShowcase() {
+  mode = 'showcase'; camera.matrixAutoUpdate = true;
+  setBoardSize(36, 1.5); world.visible = true; riseT = 0; buildCivilization(.4); fitStage();
+}
+$('go').onclick = async () => {
+  $('go').disabled = true;
+  try { await loadTracker($('status')); await openWebcam($('status')); begin(); }
+  catch (err) {
+    console.error(err); $('go').disabled = false;
+    $('status').textContent = err.name === 'NotAllowedError' ? 'Camera access was blocked. Allow it in the address bar, or play with a mouse instead.' : `The camera didn’t start (${err.message}). You can play with a mouse instead.`;
+  }
+};
+$('mouse').onclick = () => { begin(); enableMouse(); };
+
+fitStage(); startShowcase(); tick();
+</script>
+</body>
+</html>
