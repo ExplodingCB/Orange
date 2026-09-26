@@ -110,6 +110,31 @@
             ],
             compatibility: 'Any modern browser',
             category: 'Education'
+        },
+        {
+            id: 'notebook-to-pdf',
+            url: 'https://pdf.explodingcb.com/',
+            source: 'ExplodingCB/notebook-to-pdf',
+            name: 'Notebook to PDF',
+            subtitle: 'Jupyter notebooks to clean PDFs',
+            platform: 'web',
+            kicker: 'New app',
+            headline: 'Hand in notebooks without the cut-off code',
+            feature: { src: 'notebook-to-pdf-home.webp', width: 1200, height: 760, bg: '#2b2d31', w: '86%', top: '11%' },
+            screenshots: [
+                { src: 'notebook-to-pdf-home.webp', width: 1200, height: 760, alt: 'Notebook to PDF with an example physics notebook in the page preview' }
+            ],
+            about: [
+                'Drop in a Jupyter notebook and get a PDF that looks like the notebook: markdown, LaTeX math, highlighted code, plots, and tables. Long lines wrap and wide tables and equations shrink to fit, so nothing runs off the page.',
+                'It converts right in the browser in about a second. Your file is never uploaded, and there are no ads.'
+            ],
+            info: [
+                ['Price', 'Free', 'Open source'],
+                ['Runs in', 'Browser', 'Any device'],
+                ['Category', 'Utilities', 'Web']
+            ],
+            compatibility: 'Any modern browser',
+            category: 'Utilities'
         }
     ];
 
@@ -273,7 +298,11 @@
             ['Developer', 'Chase Culbertson'],
             ['Category', app.category],
             ['Compatibility', app.compatibility],
-            ['Website', `<a href="${app.url}" target="_blank" rel="noopener noreferrer">${host}</a>`]
+            ['Website', `<a href="${app.url}" target="_blank" rel="noopener noreferrer">${host}</a>`],
+            ...(app.source ? [
+                ['License', 'MIT'],
+                ['Source code', `<a href="https://github.com/${app.source}" target="_blank" rel="noopener noreferrer">github.com/${app.source}</a>`]
+            ] : [])
         ] : [
             ['Developer', 'Chase Culbertson'],
             ['Size', `${formatSize(r.size)} MB`],

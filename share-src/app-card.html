@@ -76,6 +76,11 @@
             name: 'Termloft', sub: 'Your college workspace', platform: 'Web',
             bg: '#18382c', icon: 'termloft-icon.svg',
             shot: { src: 'termloft-home.webp', left: 610, top: 118, width: 760 }
+        },
+        'notebook-to-pdf': {
+            name: 'Notebook to PDF', nameSize: 70, sub: 'Jupyter notebooks to clean PDFs', platform: 'Web',
+            bg: '#2b2d31', icon: 'notebook-to-pdf-icon.png',
+            shot: { src: 'notebook-to-pdf-home.webp', left: 610, top: 110, width: 760 }
         }
     };
 
@@ -91,7 +96,7 @@
             <img class="shot" src="${A}${s.src}" alt="" style="left:${s.left}px;top:${s.top}px;width:${s.width}px">
             <div class="copy">
                 <img class="icon" src="${A}${app.icon}" alt="">
-                <h1 class="name">${app.name}</h1>
+                <h1 class="name"${app.nameSize ? ` style="font-size:${app.nameSize}px"` : ''}>${app.name}</h1>
                 <p class="sub">${app.sub}</p>
                 <div class="foot"><img src="${LOGO}" alt="">ChApp Store <span>&middot; ${app.platform}</span></div>
             </div>`;
