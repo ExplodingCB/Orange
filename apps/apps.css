@@ -193,7 +193,8 @@ img { display: block; }
 .product-sub { margin-top: 2px; color: var(--text-2); font-size: 17px; }
 .product-dev { display: inline-block; margin-top: 4px; color: var(--link); font-size: 14px; }
 .product-dev:hover { text-decoration: underline; }
-.product-actions { display: flex; align-items: center; gap: 14px; margin-top: 14px; }
+.product-title { min-width: 0; }
+.product-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 14px; }
 .text-button { color: var(--link); font-size: 14px; }
 .text-button:hover { text-decoration: underline; }
 
