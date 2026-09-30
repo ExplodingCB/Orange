@@ -92,14 +92,12 @@ String.raw`     ^
             carEl: document.getElementById('car'),
             fs: 13, charW: 13 * 0.6, lineH: 13 * 1.15,
             rows: 0, cols: 0, phase: 1.8,
-            cur: 2
+            cur: 2, center: 0, amp: 0, fade: 0,
+            lit: document.getElementById('lit'), litGrid: null, litRow: null, hw: 7, lane: 0
         };
 
         function roadX(r) {
-            const c = journey.cols;
-            const halfRoad = c < 24 ? 3 : 5;
-            const amplitude = Math.max(0, Math.min(c * 0.16, c / 2 - halfRoad - 2));
-            return c * 0.5 + amplitude * Math.sin(r * 0.05 + journey.phase);
+            return journey.center + journey.amp * Math.sin(r * 0.05 + journey.phase);
         }
 
         function buildJourney() {
@@ -124,12 +122,26 @@ String.raw`     ^
             j.lineH = j.fs * 1.15;
             j.cols = Math.ceil(j.el.clientWidth / j.charW);
             j.rows = Math.ceil(j.el.clientHeight / j.lineH);
+            // The scene bleeds off the right edge of the window, so the road is pinned to the
+            // page column (--road-at, --road-span as fractions of it) rather than to the scene.
+            const css = getComputedStyle(j.el);
+            const shellW = j.el.offsetParent ? j.el.offsetParent.clientWidth : j.el.clientWidth;
+            const roadAt = parseFloat(css.getPropertyValue('--road-at'));
+            const span = (parseFloat(css.getPropertyValue('--road-span')) || 0) * shellW / j.charW || j.cols;
+            j.center = roadAt ? (shellW * roadAt - j.el.offsetLeft) / j.charW : j.cols / 2;
             // Three depth layers: far (misty, blurred), mid, near (sharp, by the road)
             const mkGrid = () => Array.from({ length: j.rows }, () => new Array(j.cols).fill(' '));
             const far = mkGrid(), mid = mkGrid(), near = mkGrid();
             const road = mkGrid(), markings = mkGrid();
             const narrow = j.cols < 24;
-            const hw = narrow ? 3 : 5;
+            // Two lanes wide enough for the car on desktop; on phones it's a single-lane track
+            const hw = narrow ? 3 : 7;
+            j.hw = hw;
+            j.lane = narrow ? 0 : -hw / 2;
+            j.amp = Math.max(0, Math.min(span * 0.16, span / 2 - hw - 2));
+            // Trees thin out toward the text instead of stopping at a hard edge
+            j.fade = roadAt ? Math.max(0, j.center - j.amp - hw - 12) : 0;
+            const thins = x => j.fade > 0 && random() > Math.pow(Math.max(0, x) / j.fade, 1.6);
             if (j.rows < 12 || j.cols < 10) {
                 j.carEl.style.visibility = 'hidden';
                 return;
@@ -180,7 +192,8 @@ String.raw`     ^
                     const t = random() < 0.4
                         ? BIG_TREES[Math.floor(random() * BIG_TREES.length)]
                         : TREES[Math.floor(random() * TREES.length)];
-                    stamp(random() < 0.45 ? far : mid, t, bx + Math.floor(random() * 5) - 2, r);
+                    const x0 = bx + Math.floor(random() * 5) - 2;
+                    if (!thins(x0)) stamp(random() < 0.45 ? far : mid, t, x0, r);
                     r += t.length + 3 + Math.floor(random() * 12);
                 }
             }
@@ -194,7 +207,7 @@ String.raw`     ^
                         : TREES[Math.floor(random() * TREES.length)];
                     const tw = Math.max(...t.map(l => l.length));
                     const xc = roadX(r + t.length / 2);
-                    const off = narrow ? hw + 1 : 7 + Math.floor(random() * 5);
+                    const off = narrow ? hw + 1 : hw + 2 + Math.floor(random() * 5);
                     const x0 = side > 0 ? Math.round(xc + off) : Math.round(xc - off - tw);
                     stamp(near, t, x0, r);
                     r += Math.ceil(t.length * 0.5) + 1 + Math.floor(random() * 5);
@@ -219,7 +232,7 @@ String.raw`     ^
                 const t = FLORA[Math.floor(random() * FLORA.length)];
                 const x0 = Math.floor(random() * j.cols);
                 const r0 = Math.floor(random() * j.rows);
-                if (fits(t, x0, r0)) stamp(random() < 0.5 ? mid : near, t, x0, r0);
+                if (fits(t, x0, r0) && !thins(x0)) stamp(random() < 0.5 ? mid : near, t, x0, r0);
             }
 
             // Undergrowth scattered on the forest floor
@@ -227,7 +240,7 @@ String.raw`     ^
             for (let i = 0; i < Math.floor(j.cols * j.rows / 140); i++) {
                 const x = Math.floor(random() * j.cols);
                 const r = 8 + Math.floor(random() * (j.rows - 8));
-                if (!occupied(r, x)) mid[r][x] = tufts[Math.floor(random() * tufts.length)];
+                if (!occupied(r, x) && !thins(x)) mid[r][x] = tufts[Math.floor(random() * tufts.length)];
             }
 
             // A few birds over the canopy
@@ -251,7 +264,7 @@ String.raw`     ^
                 }
                 if (L >= 0 && L < j.cols) road[rr][L] = edge;
                 if (R >= 0 && R < j.cols) road[rr][R] = edge;
-                if (rr % 5 < 3) {
+                if (!narrow && rr % 5 < 3) {
                     const cx = Math.round(xc);
                     if (cx >= 0 && cx < j.cols) markings[rr][cx] = '|';
                 }
@@ -272,6 +285,34 @@ String.raw`     ^
             document.getElementById('scene-near').textContent = near.map(row => row.join('')).join('\n');
             document.getElementById('lane-markings').textContent = markings.map(row => row.join('')).join('\n');
             j.road.textContent = road.map(row => row.join('')).join('\n');
+
+            // Everything the headlights can land on, front layer first
+            j.litGrid = road.map((row, r) => row.map((ch, x) =>
+                [ch, markings[r][x], near[r][x], mid[r][x], far[r][x]].find(c => c !== ' ') || ' '));
+            j.litRow = null;
+        }
+
+        // Headlights: the characters just ahead of the car are redrawn warm, dimming with distance
+        function lightRoad() {
+            const j = journey;
+            const front = Math.round(j.cur + 2.5);
+            // The phone strip is too narrow for a pool of light to read as anything but two rails
+            if (!j.lit || !j.litGrid || j.hw <= 3 || front === j.litRow) return;
+            j.litRow = front;
+            const reach = j.hw > 3 ? 9 : 6;
+            const lines = [];
+            for (let r = 0; r < Math.min(j.rows, front + reach); r++) {
+                const d = r - front;
+                if (d < 0) { lines.push(''); continue; }
+                const xc = roadX(r) + j.lane, half = 3 + d * 0.6;
+                let line = '';
+                for (let x = 0; x < Math.min(j.cols, Math.ceil(xc + half) + 1); x++) {
+                    line += Math.abs(x - xc) <= half ? j.litGrid[r][x] : ' ';
+                }
+                const glow = (1 - d / reach).toFixed(2);
+                lines.push(`<span style="opacity:${glow}">${line.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</span>`);
+            }
+            j.lit.innerHTML = lines.join('\n');
         }
 
         const motionPreference = matchMedia('(prefers-reduced-motion: reduce)');
@@ -285,11 +326,14 @@ String.raw`     ^
                 (scrollY + innerHeight * 0.45 - j.el.offsetTop) / j.lineH));
             const distance = target - j.cur;
             j.cur += motionPreference.matches || Math.abs(distance) < 0.02 ? distance : distance * 0.1;
-            const xPx = roadX(j.cur) * j.charW;
+            // Keep right: the car heads down the page, so its lane is the one on screen left.
+            // (+0.5 because a character in column x is drawn centred on x + 0.5.)
+            const xPx = (roadX(j.cur) + j.lane + 0.5) * j.charW;
             const yPx = j.cur * j.lineH;
             const dxPx = (roadX(j.cur + 2) - roadX(j.cur - 2)) / 4 * j.charW;
             const deg = -Math.atan2(dxPx, j.lineH) * 180 / Math.PI;
             j.carEl.style.transform = `translate(${xPx}px, ${yPx}px) translate(-50%, -50%) rotate(${deg}deg)`;
+            lightRoad();
             if (!motionPreference.matches && Math.abs(target - j.cur) >= 0.02) queueDrive();
         }
 
