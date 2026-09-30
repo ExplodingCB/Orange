@@ -141,6 +141,14 @@ h1 {
 .scene-markings { color: #bca67d; opacity: .65; }
 /* Headlights: road and trees ahead of the car, redrawn in lamp colour on top */
 .scene-lit { color: #f4e1ad; }
+.traffic.braking .tail { color: #e0806e; }
+/* Driven off the road with the arrow keys: loose on the page, above the text */
+.car-wrap.free { z-index: 4; pointer-events: none; }
+/* Cars knocked loose onto the page, and the spark when something gets whacked */
+.car-wrap.wreck { z-index: 3; pointer-events: none; transition: opacity .7s; }
+.car-wrap.wreck.gone { opacity: 0; }
+.spark { position: absolute; top: 0; left: 0; z-index: 5; font-family: var(--mono); font-size: 18px; line-height: 1; color: #f4e1ad; pointer-events: none; animation: spark .45s ease-out forwards; }
+@keyframes spark { to { opacity: 0; } }
 .car-wrap { position: absolute; top: 0; left: 0; z-index: 1; font-family: var(--mono); font-size: 12px; line-height: 1.1; white-space: pre; }
 .car { position: relative; font: inherit; color: #edb58b; background: var(--forest); border-radius: 5px; }
 
