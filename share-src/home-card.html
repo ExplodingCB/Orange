@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<!--
+  Source for the homepage link-preview image (assets/chase-share-v2.jpg).
+  The forest is drawn by the site's own journey.js, so it matches the page.
+
+  Render at 1200 x 630 (2x), e.g. on Windows:
+
+    msedge --headless=new --hide-scrollbars --window-size=1200,630 \
+      --force-device-scale-factor=2 --virtual-time-budget=4000 \
+      --screenshot=home.png "file:///D:/Projects/Orange/share-src/home-card.html"
+
+  Then scale it to 1200 x 630, save as a JPEG under a new versioned name
+  (chase-share-v3.jpg) and point the og:image and twitter:image tags in
+  index.html at it, so preview caches pick up the change.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Homepage card</title>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400&family=IBM+Plex+Mono:wght@400&display=block" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+<style>
+    html, body { width: 1200px; height: 630px; overflow: hidden; }
+    body { position: relative; margin: 0; }
+    .name {
+        position: absolute;
+        left: 92px;
+        top: 50%;
+        transform: translateY(-58%);
+        margin: 0;
+        font-family: var(--display);
+        font-size: 128px;
+        font-weight: 400;
+        line-height: .98;
+        letter-spacing: -.025em;
+        color: var(--paper);
+    }
+    .role {
+        display: block;
+        margin-top: 34px;
+        font-size: 36px;
+        letter-spacing: 0;
+        line-height: 1.3;
+        color: var(--muted);
+    }
+    /* The same scene as the homepage, drawn larger so it reads in a small preview */
+    .journey {
+        --road-at: .8;
+        --road-span: .36;
+        /* Start above the card, cropping off the ridge line the scene draws along its top */
+        top: -160px;
+        bottom: 0;
+        left: 54%;
+        right: 0;
+        -webkit-mask-image: linear-gradient(to right, transparent, black 30%), linear-gradient(transparent 18%, black 30%, black 88%, transparent);
+        mask-image: linear-gradient(to right, transparent, black 30%), linear-gradient(transparent 18%, black 30%, black 88%, transparent);
+    }
+    .scene, .car-wrap { font-size: 17px; }
+</style>
+</head>
+<body>
+    <h1 class="name">Chase<br>Culbertson<span class="role">Computer Engineering at Purdue</span></h1>
+    <div class="journey" aria-hidden="true">
+        <pre class="scene scene-far" id="scene-far"></pre>
+        <pre class="scene scene-mid" id="scene-mid"></pre>
+        <pre class="scene scene-near" id="scene-near"></pre>
+        <pre class="scene scene-road" id="road"></pre>
+        <pre class="scene scene-markings" id="lane-markings"></pre>
+        <pre class="scene scene-lit" id="lit"></pre>
+        <div class="car-wrap" id="car"><pre class="car">.--.
+|  |
+|==|
+'--'</pre></div>
+    </div>
+    <!-- Room below the card, so the car isn't parked at the end of the road as if scrolled to the bottom -->
+    <div style="position: absolute; top: 0; height: 2000px; width: 1px"></div>
+    <script src="../journey.js"></script>
+    <script>
+        // Just the one car on a quiet road
+        function clearTraffic() {
+            journey.traffic.forEach(v => v.el.remove());
+            journey.traffic = [];
+            journey.litKey = '';
+            queueDrive();
+        }
+        addEventListener('load', () => setTimeout(clearTraffic, 600));
+        document.fonts.ready.then(() => setTimeout(clearTraffic, 600));
+    </script>
+</body>
+</html>
