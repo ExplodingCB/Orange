@@ -93,7 +93,9 @@ h1 {
 .project-aside { margin-top: 1.6rem; }
 .song { max-width: 31rem; margin-top: 3.5rem; }
 .song-label { margin-bottom: .6rem; color: var(--muted); }
-.song iframe { display: block; width: 100%; max-width: 500px; height: 120px; border: 0; border-radius: 12px; }
+/* Tidal draws a faint light outline around its player; clip the outermost pixels so only the card shows */
+.song-player { max-width: 500px; height: 118px; border-radius: 11px; overflow: hidden; }
+.song-player iframe { display: block; width: calc(100% + 2px); height: 120px; margin: -1px; border: 0; }
 .contact { padding-block: 4rem 4.5rem; }
 .email {
     display: inline-block;
