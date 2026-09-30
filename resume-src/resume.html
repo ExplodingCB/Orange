@@ -14,13 +14,13 @@
 <meta charset="utf-8">
 <title>William "Chase" Culbertson - Resume</title>
 <style>
-  @page { size: letter; margin: 36pt; }
+  @page { size: letter; margin: 30pt; }
   * { box-sizing: border-box; }
   body {
     margin: 0;
     color: #000;
     font-family: Arial, Helvetica, "Liberation Sans", sans-serif;
-    font-size: 10pt;
+    font-size: 9.7pt;
     line-height: 1.275;
     -webkit-font-smoothing: antialiased;
   }
@@ -83,7 +83,7 @@
 
   <h1>William "Chase" Culbertson</h1>
   <div class="contact">West Lafayette, IN | wculbert@purdue.edu | explodingcb.com | linkedin.com/in/chase-culbertson | github.com/Sculptor-AI</div>
-  <p class="summary">Computer Engineering student with two years running production LLM infrastructure on bare metal. Lead engineer on a shipped iOS app and Safari extension, and co-founder of an on-prem inference platform serving 600+ users.</p>
+  <p class="summary">Computer Engineering student who builds on real hardware: two years running on-prem GPU servers and networking, and a datacenter internship at comma.ai next summer. Also shipped an iOS app and Safari extension as lead engineer.</p>
 
   <h2>EDUCATION</h2>
   <div class="entry">
@@ -97,12 +97,10 @@
 
   <h2>EXPERIENCE</h2>
   <div class="entry">
-    <div class="row"><span class="role">Lead Software Engineer</span><span class="right">Jun 2026 - Present</span></div>
-    <div class="row"><span class="org">Silk Shopping, AI shopping assistant (silk-shopping.com)</span><span class="right">Remote</span></div>
+    <div class="row"><span class="role">Datacenter Intern (incoming)</span><span class="right">Summer 2027</span></div>
+    <div class="row"><span class="org">comma.ai, makers of openpilot</span><span class="right">San Diego, CA</span></div>
     <ul>
-      <li>Shipped the Silk iOS app and Safari extension to the Apple App Store; own all app, web, and backend development.</li>
-      <li>Engineered barcode scanning, AI product scanning, and shopping-list features in Swift/SwiftUI on a Flask backend.</li>
-      <li>Developed the React web app and the full Safari extension, plus macOS support for the app.</li>
+      <li>comma.ai builds openpilot, open-source hands-off, eyes-on driver assistance for 350+ cars, trained in-house.</li>
     </ul>
   </div>
   <div class="entry">
@@ -110,10 +108,24 @@
     <div class="row"><span class="org">Project Andromeda, on-prem LLM inference platform at Lakeside School</span><span class="right">Seattle, WA</span></div>
     <ul>
       <li>Secured a $12,000 GPU budget from the Head of School over a subscription path priced near $600K/year.</li>
+      <li>Ran the platform on the school's own bare-metal GPU servers, with capacity monitoring across a phased rollout from 25 pilot accounts to 600+ users.</li>
       <li>Built the backend: multi-model routing, per-user auth, usage analytics, WolframAlpha and citation-lookup tools.</li>
-      <li>Scaled a phased rollout from 25 pilot accounts to 600+ users, doubling every three weeks with capacity monitoring.</li>
-      <li>Fine-tuned models to course rubrics, including an essay-feedback model built and piloted with an English teacher.</li>
-      <li>Migrated off OpenWebUI to a custom React/Node stack after hitting limits in RAG quality and per-group permissions.</li>
+    </ul>
+  </div>
+  <div class="entry">
+    <div class="row"><span class="role">Infrastructure Intern</span><span class="right">Summers 2022 - 2025</span></div>
+    <div class="row"><span class="org">Lakeside School Technology Department</span><span class="right">Seattle, WA</span></div>
+    <ul>
+      <li>Deployed campus devices and printer infrastructure; laid the groundwork for the school's AI access program.</li>
+    </ul>
+  </div>
+  <div class="entry">
+    <div class="row"><span class="role">Co-Founder and Lead Model Developer</span><span class="right">2023 - Present</span></div>
+    <div class="row"><span class="org">SculptorAI, open-source AI research group (sculptorai.org, github.com/Sculptor-AI)</span><span class="right">Remote</span></div>
+    <ul>
+      <li>Built TurnPilot, a fork of openpilot that rebuilds Navigate inside the BeamNG.drive simulator, and wrote up what should carry over to a real car.</li>
+      <li>Released the Ursa model family on Hugging Face.</li>
+      <li>Maintain aiportal, the MIT-licensed multi-model chat platform behind Andromeda, as lead developer (~470 commits).</li>
     </ul>
   </div>
   <div class="entry">
@@ -124,28 +136,21 @@
     </ul>
   </div>
   <div class="entry">
-    <div class="row"><span class="role">Co-Founder and Lead Model Developer</span><span class="right">2023 - Present</span></div>
-    <div class="row"><span class="org">SculptorAI, open-source AI research group (sculptorai.org, github.com/Sculptor-AI)</span><span class="right">Remote</span></div>
+    <div class="row"><span class="role">Lead Software Engineer</span><span class="right">Jun 2026 - Present</span></div>
+    <div class="row"><span class="org">Silk Shopping, AI shopping assistant (silk-shopping.com)</span><span class="right">Remote</span></div>
     <ul>
-      <li>Released the Ursa model family on Hugging Face.</li>
-      <li>Maintain aiportal, the MIT-licensed multi-model chat platform behind Andromeda, as lead developer (~470 commits).</li>
-    </ul>
-  </div>
-  <div class="entry">
-    <div class="row"><span class="role">Infrastructure Intern</span><span class="right">Summers 2022 - 2025</span></div>
-    <div class="row"><span class="org">Lakeside School Technology Department</span><span class="right">Seattle, WA</span></div>
-    <ul>
-      <li>Deployed campus devices and printer infrastructure; laid the groundwork for the school's AI access program.</li>
+      <li>Shipped the Silk iOS app and Safari extension to the App Store; own app, web, and backend development.</li>
     </ul>
   </div>
 
   <h2>SKILLS</h2>
   <div class="skills">
-    <p><b>Infrastructure:</b> Linux, Docker, on-prem GPU servers, networking, vLLM, Ollama, TPU/XLA</p>
+    <p><b>Languages:</b> C++, Python, Java, Swift, SwiftUI, JavaScript/Node, SQL</p>
+    <p><b>Hardware and Infrastructure:</b> on-prem GPU servers, homelab, Linux, Docker, networking, vLLM, Ollama, TPU/XLA</p>
     <p><b>Machine Learning:</b> PyTorch, JAX, Hugging Face Transformers, fine-tuning, distillation, RAG, evaluation</p>
-    <p><b>Software:</b> Swift, SwiftUI, Python, Flask, JavaScript/Node, React, C++, Java, SQL, PostgreSQL, MongoDB, Git</p>
-    <p><b>Platforms:</b> iOS and macOS development, Safari extensions, App Store publishing</p>
-    <p><b>Languages:</b> Spanish (conversational)</p>
+    <p><b>Web and Data:</b> Flask, React, PostgreSQL, MongoDB, Git</p>
+    <p><b>Platforms:</b> comma.ai openpilot (open-source ADAS, comma hardware), iOS/macOS, Safari extensions, App Store</p>
+    <p><b>Spoken:</b> Spanish (conversational)</p>
   </div>
 
   <h2>AWARDS AND ACTIVITIES</h2>
