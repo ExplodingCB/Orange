@@ -144,6 +144,25 @@ h1 {
 .traffic.braking .tail { color: #e0806e; }
 /* Driven off the road with the arrow keys: loose on the page, above the text */
 .car-wrap.free { z-index: 4; pointer-events: none; }
+/* Arrow keys painted on the road at the end of it, hinting that the car can be driven */
+.keys-hint {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    padding: 2px 4px;
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.1;
+    color: var(--muted);
+    background: var(--forest);
+    border-radius: 3px;
+    white-space: pre;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .6s;
+}
+.keys-hint.shown { opacity: .85; }
 /* Cars knocked loose onto the page, and the spark when something gets whacked */
 .car-wrap.wreck { z-index: 3; pointer-events: none; transition: opacity .7s; }
 .car-wrap.wreck.gone { opacity: 0; }
@@ -163,7 +182,7 @@ h1 {
     .page { width: 65%; }
     .journey { --road-at: .85; --road-span: .29; left: 60%; }
     .scene { font-size: 10px; }
-    .car-wrap { font-size: 10px; }
+    .car-wrap, .keys-hint { font-size: 10px; }
     .intro-heading { gap: 1.25rem; }
     .portrait { width: 80px; }
 }
@@ -196,6 +215,7 @@ h1 {
     .journey { --road-at: initial; --road-span: initial; top: 260px; bottom: 145px; left: auto; right: -16px; width: 52px; -webkit-mask-image: linear-gradient(transparent, black 5%, black 93%, transparent); mask-image: linear-gradient(transparent, black 5%, black 93%, transparent); }
     .scene { font-size: 8px; }
     .car-wrap { font-size: 9px; }
+    .keys-hint { display: none; }
     .scene-lit { display: none; }
     .email { font-size: 1.35rem; }
     .social-links { gap: .25rem 1rem; }

@@ -640,6 +640,7 @@ String.raw`     ^
             const settling = free.on ? driveFree(dt) : driveCar();
             const flowing = moveTraffic(dt);
             const crashing = stepWrecks(dt);
+            showKeysHint();
             lightRoad();
             if (settling || flowing || crashing) queueDrive();
             else lastFrame = 0;
@@ -678,6 +679,23 @@ String.raw`     ^
                 && atPageBottom() && Math.abs(j.cur - roadEnd()) < 1.5;
         }
 
+        // Once the car is parked at the end of the road, arrow keys painted on the road behind it hint
+        // that it can be driven. Only for keyboards, and only until someone has taken the wheel once.
+        const keysHint = document.getElementById('keys-hint');
+        const hasKeyboard = matchMedia('(hover: hover) and (pointer: fine)');
+        let hasDriven = false;
+        try { hasDriven = localStorage.getItem('drove-off-road') === '1'; } catch (e) {}
+
+        function showKeysHint() {
+            if (!keysHint) return;
+            const j = journey, show = !hasDriven && !free.on && hasKeyboard.matches && atRoadEnd();
+            if (show) {
+                const x = (roadX(j.cur - 4.5) + 0.5) * j.charW, y = (j.cur - 4.5) * j.lineH;
+                keysHint.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
+            }
+            keysHint.classList.toggle('shown', show);
+        }
+
         function takeWheel() {
             const j = journey, box = j.carEl.getBoundingClientRect(), doc = document.documentElement;
             const tilt = j.carEl.style.transform.match(/rotate\(([-\d.e]+)deg\)/);
@@ -692,6 +710,9 @@ String.raw`     ^
             // Out of the forest's clipped, faded frame and onto the page itself
             j.carEl.classList.add('free');
             document.body.appendChild(j.carEl);
+            hasDriven = true;
+            try { localStorage.setItem('drove-off-road', '1'); } catch (e) {}
+            showKeysHint();
         }
 
         function handBack() {
