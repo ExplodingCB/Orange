@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Shapes</title>
+  <link rel="icon" href="data:image/svg+xml;charset=utf-8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><defs><linearGradient id='cube-top-gradient' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='rgba(255,255,255,0.9)'/><stop offset='100%' stop-color='rgba(220,220,220,0.7)'/></linearGradient><linearGradient id='cube-right-gradient' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='rgba(220,220,220,0.7)'/><stop offset='100%' stop-color='rgba(180,180,180,0.5)'/></linearGradient><linearGradient id='cube-left-gradient' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='rgba(180,180,180,0.5)'/><stop offset='100%' stop-color='rgba(50,50,50,0.8)'/></linearGradient></defs><path d='M12,2L3,7L12,12L21,7L12,2Z' fill='url(%23cube-top-gradient)'/><path d='M21,7L12,12L12,22L21,17L21,7Z' fill='url(%23cube-right-gradient)'/><path d='M3,7L12,12L12,22L3,17L3,7Z' fill='url(%23cube-left-gradient)'/><path d='M12,2L3,7V17L12,22L21,17V7L12,2Z' fill='none' stroke='rgba(255,255,255,0.3)' stroke-width='0.5'/></svg>" type="image/svg+xml">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background-color: black;
+    }
+
+    .scene {
+      width: 100vw;
+      height: 100vh;
+      perspective: 1000px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Common shape styles */
+    .shape {
+      width: min(30vw, 30vh);
+      height: min(30vw, 30vh);
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.1s ease;
+      display: none; /* Hide all by default */
+    }
+
+    .shape.active {
+      display: block; /* Show active shape */
+    }
+
+    /* Cube styles */
+    .cube .face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      opacity: 0.75;
+      border: 2px solid white;
+      display: flex;
+      box-sizing: border-box;
+    }
+
+    .cube .front {
+      background: rgba(0, 255, 0, 0.5);
+      transform: translateZ(calc(min(15vw, 15vh)));
+    }
+
+    .cube .back {
+      background: rgba(255, 0, 0, 0.5);
+      transform: rotateY(180deg) translateZ(calc(min(15vw, 15vh)));
+    }
+
+    .cube .right {
+      background: rgba(0, 255, 255, 0.5);
+      transform: rotateY(90deg) translateZ(calc(min(15vw, 15vh)));
+    }
+
+    .cube .left {
+      background: rgba(255, 255, 0, 0.5);
+      transform: rotateY(-90deg) translateZ(calc(min(15vw, 15vh)));
+    }
+
+    .cube .top {
+      background: rgba(255, 255, 255, 0.5);
+      transform: rotateX(90deg) translateZ(calc(min(15vw, 15vh)));
+    }
+
+    .cube .bottom {
+      background: rgba(0, 0, 255, 0.5);
+      transform: rotateX(-90deg) translateZ(calc(min(15vw, 15vh)));
+    }
+
+    /* Sphere styles */
+    .sphere-container {
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+    }
+    
+    .sphere-slice {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      left: 0;
+      top: 0;
+    }
+    
+    .sphere-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      opacity: 0.3;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      box-sizing: border-box;
+      border-radius: 50%;
+      background: radial-gradient(circle at center, rgba(100, 200, 255, 0.4) 0%, rgba(50, 100, 230, 0.2) 70%);
+      box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.2);
+    }
+
+    /* Hexecontahedron styles */
+    .hexecontahedron-container {
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+    }
+    
+    .hexecontahedron-face {
+      position: absolute;
+      width: 40%;
+      height: 40%;
+      left: 30%;
+      top: 30%;
+      opacity: 0.8;
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      box-sizing: border-box;
+      background: linear-gradient(135deg, rgba(255, 100, 150, 0.5), rgba(150, 50, 200, 0.5));
+      transform-style: preserve-3d;
+      backface-visibility: visible;
+      transform-origin: center center;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    }
+
+    /* Bubble UI selector */
+    .shape-selector {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 15px 20px;
+      border-radius: 50px;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .shape-selector:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateX(-50%) scale(1.05);
+    }
+
+    .shape-button {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      background: rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+      border: 2px solid transparent;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .shape-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(circle at center, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 70%);
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .shape-button:hover::before {
+      opacity: 1;
+    }
+
+    .shape-button:hover {
+      transform: scale(1.1);
+      background: rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+    }
+
+    .shape-button.active {
+      border-color: white;
+      background: rgba(0, 0, 0, 0.6);
+      transform: scale(1.15);
+    }
+
+    .shape-button svg {
+      width: 30px;
+      height: 30px;
+      transition: all 0.3s ease;
+      filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.5));
+    }
+
+    .shape-button:hover svg {
+      transform: scale(1.1);
+      filter: drop-shadow(0 3px 5px rgba(0, 0, 0, 0.7));
+    }
+
+    .shape-button.active svg {
+      filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.8));
+    }
+    
+    /* SVG gradients and 3D effects */
+    .icon-3d-light {
+      stop-color: rgba(255, 255, 255, 0.9);
+    }
+    
+    .icon-3d-medium {
+      stop-color: rgba(220, 220, 220, 0.7);
+    }
+    
+    .icon-3d-dark {
+      stop-color: rgba(180, 180, 180, 0.5);
+    }
+    
+    .icon-3d-shadow {
+      stop-color: rgba(50, 50, 50, 0.8);
+    }
+
+    /* Controls info */
+    .controls {
+      position: fixed;
+      bottom: 110px;
+      left: 0;
+      right: 0;
+      text-align: center;
+      color: white;
+      font-family: Arial, sans-serif;
+      font-size: 14px;
+      pointer-events: none;
+      opacity: 0.7;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+  <div class="scene">
+    <!-- Cube shape -->
+    <div class="shape cube active" id="cube">
+      <div class="face front"></div>
+      <div class="face back"></div>
+      <div class="face right"></div>
+      <div class="face left"></div>
+      <div class="face top"></div>
+      <div class="face bottom"></div>
+    </div>
+
+    <!-- Sphere shape -->
+    <div class="shape sphere" id="sphere">
+      <div class="sphere-container" id="sphere-container">
+        <!-- Sphere slices will be generated by JS -->
+      </div>
+    </div>
+
+    <!-- Hexecontahedron shape -->
+    <div class="shape hexecontahedron" id="hexecontahedron">
+      <div class="hexecontahedron-container" id="hexecontahedron-container">
+        <!-- Hexecontahedron faces will be generated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Shape selector UI -->
+  <div class="shape-selector">
+    <div class="shape-button active" data-shape="cube">
+      <svg viewBox="0 0 24 24">
+        <defs>
+          <linearGradient id="cube-top-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" class="icon-3d-light" />
+            <stop offset="100%" class="icon-3d-medium" />
+          </linearGradient>
+          <linearGradient id="cube-right-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" class="icon-3d-medium" />
+            <stop offset="100%" class="icon-3d-dark" />
+          </linearGradient>
+          <linearGradient id="cube-left-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" class="icon-3d-dark" />
+            <stop offset="100%" class="icon-3d-shadow" />
+          </linearGradient>
+        </defs>
+        <!-- 3D Cube -->
+        <path d="M12,2L3,7V17L12,22L21,17V7L12,2Z" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5" />
+        <!-- Top face -->
+        <path d="M12,2L3,7L12,12L21,7L12,2Z" fill="url(#cube-top-gradient)" />
+        <!-- Right face -->
+        <path d="M21,7L12,12L12,22L21,17L21,7Z" fill="url(#cube-right-gradient)" />
+        <!-- Left face -->
+        <path d="M3,7L12,12L12,22L3,17L3,7Z" fill="url(#cube-left-gradient)" />
+        <!-- Outline -->
+        <path d="M12,2L3,7V17L12,22L21,17V7L12,2Z M12,4L19,8V16L12,20L5,16V8L12,4Z" fill="rgba(255,255,255,0.3)" />
+      </svg>
+    </div>
+    <div class="shape-button" data-shape="sphere">
+      <svg viewBox="0 0 24 24">
+        <defs>
+          <radialGradient id="sphere-gradient" cx="40%" cy="40%" r="60%" fx="30%" fy="30%">
+            <stop offset="0%" class="icon-3d-light" />
+            <stop offset="50%" class="icon-3d-medium" />
+            <stop offset="100%" class="icon-3d-dark" />
+          </radialGradient>
+          <filter id="sphere-glow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="1" result="blur" />
+            <feComposite in="SourceGraphic" in2="blur" operator="over" />
+          </filter>
+        </defs>
+        <!-- 3D Sphere with highlight -->
+        <circle cx="12" cy="12" r="10" fill="url(#sphere-gradient)" filter="url(#sphere-glow)" />
+        
+        <!-- Highlight -->
+        <ellipse cx="9" cy="9" rx="3" ry="3" fill="rgba(255,255,255,0.3)" />
+        
+        <!-- Contour lines to suggest spherical shape -->
+        <path d="M12,2 A10,10 0 0 1 12,22 A10,10 0 0 1 12,2" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.5" />
+        <path d="M2,12 A10,10 0 0 1 22,12 A10,10 0 0 1 2,12" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.5" />
+        <path d="M5,5 A10,10 0 0 1 19,19" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="0.5" />
+      </svg>
+    </div>
+    <div class="shape-button" data-shape="hexecontahedron">
+      <svg viewBox="0 0 24 24">
+        <defs>
+          <linearGradient id="poly-top-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" class="icon-3d-light" />
+            <stop offset="100%" class="icon-3d-medium" />
+          </linearGradient>
+          <linearGradient id="poly-side1-gradient" x1="100%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" class="icon-3d-medium" />
+            <stop offset="100%" class="icon-3d-dark" />
+          </linearGradient>
+          <linearGradient id="poly-side2-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" class="icon-3d-dark" />
+            <stop offset="100%" class="icon-3d-shadow" />
+          </linearGradient>
+          <linearGradient id="poly-side3-gradient" x1="100%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" class="icon-3d-dark" />
+            <stop offset="80%" class="icon-3d-shadow" />
+          </linearGradient>
+        </defs>
+        
+        <!-- Complex polyhedron with multiple faces -->
+        <!-- Central structure -->
+        <path d="M12,3L5,7L5,14L12,18L19,14L19,7L12,3Z" fill="url(#poly-top-gradient)" />
+        
+        <!-- Additional faces to create 3D effect -->
+        <path d="M12,3L5,7L3,5L8,2L12,3Z" fill="url(#poly-side1-gradient)" />
+        <path d="M12,3L19,7L21,5L16,2L12,3Z" fill="url(#poly-side2-gradient)" />
+        <path d="M5,14L3,17L8,20L12,18L5,14Z" fill="url(#poly-side3-gradient)" />
+        <path d="M19,14L21,17L16,20L12,18L19,14Z" fill="url(#poly-side1-gradient)" />
+        
+        <!-- Inner details -->
+        <path d="M12,8L9,10L9,13L12,15L15,13L15,10L12,8Z" fill="rgba(255,255,255,0.3)" />
+        
+        <!-- Edges to highlight the 3D structure -->
+        <path d="M12,3L5,7L5,14L12,18L19,14L19,7L12,3Z" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="0.2" />
+        <path d="M3,5L5,7M19,7L21,5M5,14L3,17M19,14L21,17" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="0.2" />
+      </svg>
+    </div>
+  </div>
+
+  <div class="controls">Drag to rotate • Release to spin</div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // Create sphere slices
+      createSphere();
+      
+      // Create hexecontahedron faces
+      createHexecontahedron();
+      
+      // Get all shape elements
+      const shapes = {
+        cube: document.getElementById('cube'),
+        sphere: document.getElementById('sphere'),
+        hexecontahedron: document.getElementById('hexecontahedron')
+      };
+      
+      // Get all shape selector buttons
+      const shapeButtons = document.querySelectorAll('.shape-button');
+      
+      // Set up rotation variables
+      let isDragging = false;
+      let previousMousePosition = { x: 0, y: 0 };
+      let rotationX = 0;
+      let rotationY = 0;
+      let rotationZ = 0;
+      let autoRotate = true;
+      let lastInteractionTime = Date.now();
+      const inactivityTimeout = 3000; // 3 seconds until auto-rotation resumes
+      
+      // Momentum variables
+      let momentumX = 0;
+      let momentumY = 0;
+      let dragSpeed = { x: 0, y: 0 };
+      const friction = 0.95; // Higher value = less friction
+      const momentumThreshold = 0.1; // Minimum momentum to continue spinning
+      
+      // Auto-rotation speeds (degrees per frame)
+      let autoRotationSpeedX = 0.1;
+      let autoRotationSpeedY = 0.2;
+      let autoRotationSpeedZ = 0.05;
+      
+      // Current active shape
+      let currentShape = 'cube';
+      
+      // Initialize
+      updateShapeRotation();
+      
+      // Animation frame for smooth rotation
+      function animate() {
+        if (autoRotate) {
+          // Auto-rotation mode
+          rotationX += autoRotationSpeedX;
+          rotationY += autoRotationSpeedY;
+          rotationZ += autoRotationSpeedZ;
+        } else {
+          // Momentum-based rotation after user interaction
+          if (Math.abs(momentumX) > momentumThreshold || Math.abs(momentumY) > momentumThreshold) {
+            rotationX += momentumY;
+            rotationY += momentumX;
+            
+            // Apply friction to slow down
+            momentumX *= friction;
+            momentumY *= friction;
+            
+            // Reset the last interaction time while momentum is still active
+            if (Math.abs(momentumX) > 0.5 || Math.abs(momentumY) > 0.5) {
+              lastInteractionTime = Date.now();
+            }
+          }
+        }
+        
+        updateShapeRotation();
+        requestAnimationFrame(animate);
+      }
+      
+      // Start animation loop
+      animate();
+
+      // Auto rotation check interval
+      setInterval(() => {
+        if (!autoRotate && Date.now() - lastInteractionTime > inactivityTimeout) {
+          // Transfer any remaining momentum to initial auto-rotation speed
+          const speedFactor = 0.1;
+          autoRotationSpeedX = 0.1 + Math.abs(momentumY) * speedFactor;
+          autoRotationSpeedY = 0.2 + Math.abs(momentumX) * speedFactor;
+          
+          autoRotate = true;
+          momentumX = 0;
+          momentumY = 0;
+        }
+      }, 100);
+
+      // Function to update shape rotation based on current values
+      function updateShapeRotation() {
+        const activeShape = shapes[currentShape];
+        if (activeShape) {
+          activeShape.style.transform = `rotateX(${rotationX}deg) rotateY(${rotationY}deg) rotateZ(${rotationZ}deg)`;
+        }
+      }
+
+      // Track speed over time for momentum
+      function updateDragSpeed(x, y) {
+        dragSpeed = { x, y };
+      }
+
+      // Function to create a sphere using multiple divs
+      function createSphere() {
+        const container = document.getElementById('sphere-container');
+        const sliceCount = 12; // Reduced number of slices for a cleaner look
+        
+        // Create vertical slices (around Y axis)
+        for (let i = 0; i < sliceCount; i++) {
+          const slice = document.createElement('div');
+          slice.className = 'sphere-slice';
+          
+          // Rotate each slice to create a sphere
+          const angle = (i / sliceCount) * 180;
+          slice.style.transform = `rotateY(${angle}deg)`;
+          
+          // Add a face for each slice
+          const face = document.createElement('div');
+          face.className = 'sphere-face';
+          
+          // Use varying opacities based on angle to create a 3D effect
+          const opacity = Math.cos((angle - 90) * Math.PI / 180) * 0.3 + 0.2;
+          face.style.opacity = opacity;
+          
+          slice.appendChild(face);
+          container.appendChild(slice);
+        }
+        
+        // Create horizontal slices (around X axis)
+        for (let i = 0; i < sliceCount; i++) {
+          const slice = document.createElement('div');
+          slice.className = 'sphere-slice';
+          
+          // Rotate each slice to create a sphere
+          const angle = (i / sliceCount) * 180;
+          slice.style.transform = `rotateX(${angle}deg)`;
+          
+          // Add a face for each slice
+          const face = document.createElement('div');
+          face.className = 'sphere-face';
+          
+          // Use varying opacities based on angle to create a 3D effect
+          const opacity = Math.cos((angle - 90) * Math.PI / 180) * 0.3 + 0.2;
+          face.style.opacity = opacity;
+          
+          slice.appendChild(face);
+          container.appendChild(slice);
+        }
+      }
+      
+      // Function to create a hexecontahedron (60-faced polyhedron)
+      function createHexecontahedron() {
+        const container = document.getElementById('hexecontahedron-container');
+        
+        // We'll create 60 faces arranged in a spherical pattern
+        // First, generate points on a sphere using the golden ratio method
+        const phi = (1 + Math.sqrt(5)) / 2; // Golden ratio
+        
+        // Create the 60 faces
+        for (let i = 0; i < 60; i++) {
+          const face = document.createElement('div');
+          face.className = 'hexecontahedron-face';
+          
+          // Use a combination of rotation angles to distribute faces evenly
+          // This is a simplified approach that approximates a hexecontahedron
+          const longitude = (i % 10) * 36;  // 10 points around, each 36 degrees
+          const latitude = Math.floor(i / 10) * 30 - 75; // 6 layers, each 30 degrees, offset to center
+          
+          // Calculate distance from center (radius)
+          const radius = Math.min(15, 15);
+          
+          // Adjust hue for a nice gradient of colors
+          const hue = (i * 6) % 360;
+          face.style.background = `linear-gradient(135deg, 
+                                   hsla(${hue}, 100%, 70%, 0.6), 
+                                   hsla(${hue + 40}, 100%, 50%, 0.6))`;
+          
+          // Apply unique transform to each face to arrange them in a spherical pattern
+          face.style.transform = `rotateY(${longitude}deg) rotateX(${latitude}deg) translateZ(calc(min(15vw, 15vh)))`;
+          
+          // Add faces to the container
+          container.appendChild(face);
+        }
+      }
+      
+      // Handle mouse events for dragging
+      document.addEventListener('mousedown', (e) => {
+        isDragging = true;
+        previousMousePosition = { x: e.clientX, y: e.clientY };
+        
+        // Stop momentum and auto-rotation
+        momentumX = 0;
+        momentumY = 0;
+        autoRotate = false;
+        
+        // Reset drag speed
+        dragSpeed = { x: 0, y: 0 };
+        
+        lastInteractionTime = Date.now();
+      });
+
+      document.addEventListener('mouseup', (e) => {
+        if (isDragging) {
+          // Transfer drag speed to momentum on release
+          momentumX = dragSpeed.x * 0.2; // Scale factor controls "throw" force
+          momentumY = dragSpeed.y * 0.2;
+        }
+        
+        isDragging = false;
+        lastInteractionTime = Date.now();
+      });
+
+      // Track previous positions and timestamps for velocity calculation
+      let lastPos = { x: 0, y: 0, time: 0 };
+      
+      document.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        const currentTime = Date.now();
+        const deltaMove = {
+          x: e.clientX - previousMousePosition.x,
+          y: e.clientY - previousMousePosition.y
+        };
+
+        // Calculate instantaneous velocity
+        if (lastPos.time > 0) {
+          const dt = currentTime - lastPos.time;
+          if (dt > 0) {
+            const speedX = (e.clientX - lastPos.x) / dt * 10; // Scale up for better feel
+            const speedY = (e.clientY - lastPos.y) / dt * 10;
+            updateDragSpeed(speedX, -speedY); // Invert Y for correct rotation direction
+          }
+        }
+        
+        // Save position for next velocity calculation
+        lastPos = { x: e.clientX, y: e.clientY, time: currentTime };
+        
+        // Update rotation based on mouse movement
+        rotationX -= deltaMove.y * 0.5; // Reversed for natural feel
+        rotationY += deltaMove.x * 0.5;
+        
+        updateShapeRotation();
+        previousMousePosition = { x: e.clientX, y: e.clientY };
+        lastInteractionTime = Date.now();
+      });
+
+      // Handle touch events for mobile
+      document.addEventListener('touchstart', (e) => {
+        if (e.touches.length === 1) {
+          isDragging = true;
+          previousMousePosition = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          
+          // Stop momentum and auto-rotation
+          momentumX = 0;
+          momentumY = 0;
+          autoRotate = false;
+          
+          // Reset drag speed
+          dragSpeed = { x: 0, y: 0 };
+          lastPos = { x: 0, y: 0, time: 0 };
+          
+          lastInteractionTime = Date.now();
+        }
+      });
+
+      document.addEventListener('touchend', (e) => {
+        if (isDragging) {
+          // Transfer drag speed to momentum on release
+          momentumX = dragSpeed.x * 0.2; // Scale factor controls "throw" force
+          momentumY = dragSpeed.y * 0.2;
+        }
+        
+        isDragging = false;
+        lastInteractionTime = Date.now();
+      });
+
+      document.addEventListener('touchmove', (e) => {
+        if (!isDragging || e.touches.length !== 1) return;
+        
+        const touch = e.touches[0];
+        const currentTime = Date.now();
+        const deltaMove = {
+          x: touch.clientX - previousMousePosition.x,
+          y: touch.clientY - previousMousePosition.y
+        };
+
+        // Calculate instantaneous velocity
+        if (lastPos.time > 0) {
+          const dt = currentTime - lastPos.time;
+          if (dt > 0) {
+            const speedX = (touch.clientX - lastPos.x) / dt * 10; // Scale up for better feel
+            const speedY = (touch.clientY - lastPos.y) / dt * 10;
+            updateDragSpeed(speedX, -speedY); // Invert Y for correct rotation direction
+          }
+        }
+        
+        // Save position for next velocity calculation
+        lastPos = { x: touch.clientX, y: touch.clientY, time: currentTime };
+
+        // Update rotation based on touch movement
+        rotationX -= deltaMove.y * 0.5; // Reversed for natural feel
+        rotationY += deltaMove.x * 0.5;
+        
+        updateShapeRotation();
+        previousMousePosition = { x: touch.clientX, y: touch.clientY };
+        lastInteractionTime = Date.now();
+        
+        // Prevent scrolling while dragging
+        e.preventDefault();
+      });
+      
+      // Shape selector button click handler
+      shapeButtons.forEach(button => {
+        button.addEventListener('click', () => {
+          const shape = button.getAttribute('data-shape');
+          
+          // Update active shape
+          currentShape = shape;
+          
+          // Update UI
+          document.querySelectorAll('.shape').forEach(element => {
+            element.classList.remove('active');
+          });
+          shapes[shape].classList.add('active');
+          
+          // Update buttons
+          shapeButtons.forEach(btn => {
+            btn.classList.remove('active');
+          });
+          button.classList.add('active');
+          
+          // Add a nice transition effect
+          const selector = document.querySelector('.shape-selector');
+          selector.style.transform = 'translateX(-50%) scale(1.1)';
+          setTimeout(() => {
+            selector.style.transform = 'translateX(-50%) scale(1)';
+          }, 300);
+        });
+      });
+    });
+  </script>
+</body>
+</html>

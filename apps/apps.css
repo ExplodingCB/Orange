@@ -97,9 +97,12 @@ img { display: block; }
 
 /* ---------- Shelves ---------- */
 
-.shelf + .shelf { margin-top: 40px; }
+.shelf + .shelf, .shelf + .group { margin-top: 40px; }
+.group > .shelf-head { margin-bottom: 4px; }
+.subshelf + .subshelf { margin-top: 20px; }
 .shelf-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
 .page-title { font-size: 28px; font-weight: 700; letter-spacing: -.02em; line-height: 1.15; }
+.shelf-head h3 { font-size: 15px; font-weight: 600; letter-spacing: -.01em; line-height: 1.3; color: var(--text-2); }
 .shelf-head h2 { font-size: 21px; font-weight: 700; letter-spacing: -.015em; line-height: 1.2; }
 .arrows { display: flex; gap: 6px; }
 .arrows[hidden] { display: none; }
@@ -319,7 +322,7 @@ code { font-family: var(--mono); font-size: .88em; overflow-wrap: anywhere; }
     .carousel { gap: 14px; margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; }
     .editorial { grid-auto-columns: 86%; }
     .lockups { grid-auto-columns: 86%; }
-    .shelf + .shelf { margin-top: 32px; }
+    .shelf + .shelf, .shelf + .group { margin-top: 32px; }
 
     .product-bar { margin-bottom: 12px; }
     .product-head { align-items: flex-start; gap: 16px; }

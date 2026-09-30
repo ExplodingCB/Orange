@@ -93,6 +93,7 @@
             name: 'Termloft',
             subtitle: 'Your college workspace',
             platform: 'web',
+            group: 'tools',
             kicker: 'On the web',
             headline: 'College is a lot. Keep it together.',
             feature: { src: 'termloft-home.webp', width: 1200, height: 683, bg: '#18382c', w: '86%', top: '11%' },
@@ -118,6 +119,7 @@
             name: 'Notebook to PDF',
             subtitle: 'Jupyter notebooks to clean PDFs',
             platform: 'web',
+            group: 'tools',
             kicker: 'New app',
             headline: 'Hand in notebooks without the cut-off code',
             feature: { src: 'notebook-to-pdf-home.webp', width: 1200, height: 760, bg: '#2b2d31', w: '86%', top: '11%' },
@@ -142,6 +144,7 @@
             name: 'BetrCooking',
             subtitle: 'The family recipe book',
             platform: 'web',
+            group: 'tools',
             kicker: 'On the web',
             headline: 'A family recipe book you can actually cook from',
             feature: { src: 'betrcooking-recipe.webp', width: 1200, height: 750, bg: '#1b4332', w: '86%', top: '11%' },
@@ -167,6 +170,7 @@
             name: 'Tabletop Tyrant',
             subtitle: 'Wreck a tiny village on your desk',
             platform: 'web',
+            group: 'toys',
             kicker: 'New game',
             headline: 'A tiny village on your desk, and your hands are the weather',
             feature: { src: 'tabletop-tyrant-domain.webp', width: 1200, height: 750, bg: '#101d17', w: '86%', top: '11%' },
@@ -186,10 +190,37 @@
             ],
             compatibility: 'Chrome or Edge on a laptop with a webcam, or any browser with a mouse',
             category: 'Games'
+        },
+        {
+            id: 'cube',
+            url: 'https://explodingcb.com/play/cube/',
+            iconFile: 'cube-icon.svg',
+            name: 'Cube',
+            subtitle: 'A dumb little web toy',
+            platform: 'web',
+            group: 'toys',
+            kicker: 'Web toy',
+            headline: 'Spin a cube. That’s it.',
+            feature: { src: 'cube-shapes.webp', width: 1200, height: 683, bg: '#000000', w: '86%', top: '11%' },
+            screenshots: [
+                { src: 'cube-shapes.webp', width: 1200, height: 683, alt: 'A glowing green cube, with buttons to switch to a sphere or a hexecontahedron' }
+            ],
+            about: [
+                'A cube you can grab, spin, and throw, and two other shapes to swap to: a sphere and a sixty-sided hexecontahedron. It does nothing useful, and I like it that way.',
+                'It runs in the browser, so there’s nothing to install.'
+            ],
+            info: [
+                ['Price', 'Free', 'No sign-up'],
+                ['Runs in', 'Browser', 'Any device'],
+                ['Category', 'Entertainment', 'Web']
+            ],
+            compatibility: 'Any modern browser',
+            category: 'Entertainment'
         }
     ];
 
     const PLATFORM = { mac: 'Mac', windows: 'Windows', web: 'Web' };
+    const WEB_GROUPS = { tools: 'Tools', toys: 'Webtoys' };
     const SECTIONS = ['discover', 'mac', 'windows', 'web'];
     const byId = Object.fromEntries(APPS.map(app => [app.id, app]));
     const $ = (sel, root = document) => root.querySelector(sel);
@@ -241,7 +272,15 @@
                 <svg viewBox="0 0 16 16" aria-hidden="true">${NAV_ICONS[id]}</svg>
                 <span>${id === 'discover' ? 'Discover' : PLATFORM[id]}</span>
             </a>`;
-        const shelf = id => `
+        const shelf = id => id === 'web' ? `
+            <section class="group" id="web" aria-labelledby="web-title">
+                <div class="shelf-head"><h2 id="web-title">${PLATFORM.web}</h2></div>
+                ${Object.entries(WEB_GROUPS).map(([group, label]) => `
+                <div class="shelf subshelf" aria-labelledby="web-${group}-title">
+                    <div class="shelf-head"><h3 id="web-${group}-title">${label}</h3>${ARROWS}</div>
+                    <ul class="lockups carousel" data-platform="web" data-group="${group}"></ul>
+                </div>`).join('')}
+            </section>` : `
             <section class="shelf" id="${id}" aria-labelledby="${id}-title">
                 <div class="shelf-head"><h2 id="${id}-title">${PLATFORM[id]}</h2>${ARROWS}</div>
                 <ul class="lockups carousel" data-platform="${id}"></ul>
@@ -294,7 +333,7 @@
         }).join('');
 
         $$('.lockups').forEach(list => {
-            list.innerHTML = APPS.filter(a => a.platform === list.dataset.platform).map(app => `
+            list.innerHTML = APPS.filter(a => a.platform === list.dataset.platform && (!list.dataset.group || a.group === list.dataset.group)).map(app => `
                 <li>
                     <a class="lockup" href="${BASE}${app.id}/">
                         ${icon(app, 64)}
