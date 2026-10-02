@@ -106,6 +106,7 @@
             compatibility: 'Windows 11, 64-bit',
             language: ['Rust', 'C'],
             category: 'Utilities',
+            install: 'winget install ExplodingCB.Indicative',
             note: 'Indicative isn’t code-signed, so SmartScreen may say “Windows protected your PC” the first time. Choose More info, then Run anyway. It takes over Win+Space from the keyboard-language switcher, which still works with Alt+Shift.',
             asset: /setup.*\.exe$/i,
             release: { version: '0.1.1', date: '2026-10-02T00:48:05Z', size: 2447076, url: 'https://github.com/ExplodingCB/indicative/releases/latest', notes: [] }
