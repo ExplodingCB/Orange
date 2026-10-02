@@ -106,7 +106,6 @@
             compatibility: 'Windows 11, 64-bit',
             language: ['Rust', 'C'],
             category: 'Utilities',
-            install: 'winget install ExplodingCB.Indicative',
             note: 'Indicative isn’t code-signed, so SmartScreen may say “Windows protected your PC” the first time. Choose More info, then Run anyway. It takes over Win+Space from the keyboard-language switcher, which still works with Alt+Shift.',
             asset: /setup.*\.exe$/i,
             release: { version: '0.1.1', date: '2026-10-02T00:48:05Z', size: 2447076, url: 'https://github.com/ExplodingCB/indicative/releases/latest', notes: [] }
@@ -480,11 +479,11 @@
             ${web ? '' : `
             <section class="block">
                 <div class="block-head"><h2>Install</h2></div>
-                <div class="command">
+                ${app.install ? `<div class="command">
                     <code>${escapeHtml(app.install)}</code>
                     <button type="button" class="copy" data-copy="${escapeHtml(app.install)}">Copy</button>
-                </div>
-                <p class="prose muted">Or <a href="${escapeHtml(r.url)}" rel="noopener noreferrer">download ${escapeHtml(r.file || 'the latest release')}</a>. ${app.note}</p>
+                </div>` : ''}
+                <p class="prose muted">${app.install ? 'Or ' : ''}<a href="${escapeHtml(r.url)}" rel="noopener noreferrer">${app.install ? 'download' : 'Download'} ${escapeHtml(r.file || 'the latest release')}</a>. ${app.note}</p>
             </section>`}
 
             <section class="block">
