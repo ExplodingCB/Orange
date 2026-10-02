@@ -87,6 +87,31 @@
             release: { version: '0.1.1', date: '2026-09-24T23:58:56Z', size: 2248552, url: 'https://github.com/ExplodingCB/tempmanager/releases/latest', notes: [] }
         },
         {
+            id: 'indicative',
+            repo: 'ExplodingCB/indicative',
+            name: 'Indicative',
+            subtitle: 'Spotlight for Windows',
+            platform: 'windows',
+            kicker: 'New app',
+            headline: 'Press Win+Space, type, hit Enter',
+            feature: { src: 'indicative-search.webp', width: 962, height: 765, bg: '#16213f', w: '56%', top: '12%' },
+            screenshots: [
+                { src: 'indicative-search.webp', width: 962, height: 765, alt: 'The Indicative search panel showing a top hit, Visual Studio Code, and matching documents and folders over a blurred desktop' }
+            ],
+            about: [
+                'A Spotlight-style launcher for Windows. Press Win+Space, start typing, and press Enter to open an app, a file, or a folder. Results are grouped under Top Hit, Applications, Documents, and Folders, with a web search as the fallback and a calculator built in.',
+                'It’s written in Rust, C, and raw Win32, and it sits at about 0.5 MB of memory while idle. A search takes well under a millisecond, so typing never waits on it.'
+            ],
+            requires: ['Windows 11', '64-bit'],
+            compatibility: 'Windows 11, 64-bit',
+            language: ['Rust', 'C'],
+            category: 'Utilities',
+            install: 'winget install ExplodingCB.Indicative',
+            note: 'Indicative isn’t code-signed, so SmartScreen may say “Windows protected your PC” the first time. Choose More info, then Run anyway. It takes over Win+Space from the keyboard-language switcher, which still works with Alt+Shift.',
+            asset: /setup.*\.exe$/i,
+            release: { version: '0.1.1', date: '2026-10-02T00:48:05Z', size: 2447076, url: 'https://github.com/ExplodingCB/indicative/releases/latest', notes: [] }
+        },
+        {
             id: 'termloft',
             url: 'https://schedule.explodingcb.com/',
             iconFile: 'termloft-icon.svg',
