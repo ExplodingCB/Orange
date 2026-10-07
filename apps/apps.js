@@ -62,6 +62,31 @@
             release: { version: '1.0.2', date: '2026-09-24T22:00:00Z', size: 857496, url: 'https://github.com/ExplodingCB/tv-remote/releases/latest', notes: [] }
         },
         {
+            id: 'atoll-efficient',
+            repo: 'ExplodingCB/atoll-efficient',
+            upstream: 'Ebullioscopic/Atoll',
+            license: 'GPL-3.0',
+            name: 'Atoll Efficient',
+            subtitle: 'Atoll, minus the battery drain',
+            platform: 'mac',
+            kicker: 'New app',
+            headline: 'The notch app I loved, minus the part that ate my battery',
+            feature: { src: 'atoll-efficient-feature.webp', width: 2000, height: 1250, bg: '#05303d', w: '100%', top: '0' },
+            screenshots: [],
+            about: [
+                'Atoll turns the notch into a Dynamic Island for your Mac, with music controls, a volume and brightness HUD and lock screen widgets. I loved it, but on my MacBook Air it kept a system process busy at around 15% of a core the entire time it was open. Not great. My friend had it worse, he kept getting a popup telling him to restart it because it was using over a gigabyte of memory.',
+                'This fork keeps all of that and fixes both problems, which was the whole point. It no longer polls for processes every 150 milliseconds, and a browser playing a video with no album art won’t balloon it to 700 MB anymore. Stats, clipboard, downloads, the terminal and the other extras start off, so turn back on whatever you miss in Settings. It installs as its own app and leaves the original Atoll alone. Ebullioscopic built Atoll, I just made it lighter. This fork is not affiliated with the Atoll project.'
+            ],
+            requires: ['macOS 14.6', 'or later'],
+            compatibility: 'macOS 14.6 or later, Apple silicon',
+            language: ['Swift', 'SwiftUI'],
+            category: 'Utilities',
+            install: 'brew install --cask explodingcb/tap/atoll-efficient',
+            note: 'Atoll Efficient is ad-hoc signed, not notarized. Homebrew clears the quarantine flag for you. If you use the zip, run <code>xattr -dr com.apple.quarantine "/Applications/Atoll Efficient.app"</code> after unzipping. Quit the original Atoll first, and expect macOS to ask for Bluetooth and Accessibility again after each upgrade.',
+            asset: /\.zip$/i,
+            release: { version: '2.3.3-e1', date: '2026-10-07T22:57:22Z', size: 21774395, url: 'https://github.com/ExplodingCB/atoll-efficient/releases/latest', notes: [] }
+        },
+        {
             id: 'tempmanager',
             repo: 'ExplodingCB/tempmanager',
             name: 'tempmanager',
@@ -423,8 +448,11 @@
             ['Size', `${formatSize(r.size)} MB`],
             ['Category', app.category],
             ['Compatibility', app.compatibility],
-            ['License', 'MIT'],
-            ['Source code', `<a href="${repoUrl(app)}" target="_blank" rel="noopener noreferrer">github.com/${app.repo}</a>`]
+            ['License', app.license || 'MIT'],
+            ['Source code', `<a href="${repoUrl(app)}" target="_blank" rel="noopener noreferrer">github.com/${app.repo}</a>`],
+            ...(app.upstream ? [
+                ['Fork of', `<a href="https://github.com/${app.upstream}" target="_blank" rel="noopener noreferrer">github.com/${app.upstream}</a>`]
+            ] : [])
         ];
         const actions = web ? `
                         <a class="get get-fill" href="${app.url}" target="_blank" rel="noopener noreferrer">Open</a>

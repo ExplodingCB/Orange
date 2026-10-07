@@ -41,6 +41,8 @@
     .foot img { width: 44px; height: 44px; }
     .foot span { color: var(--fg-2); font-weight: 500; }
     .shot { position: absolute; border-radius: 14px; box-shadow: 0 30px 70px #00000080; }
+    /* No screenshot: the feature art, faded into the card at its edges. */
+    .art { position: absolute; -webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent); mask-image: radial-gradient(closest-side, #000 72%, transparent); }
 
     /* Store card */
     .store { --bg: #f5f5f7; --fg: #1d1d1f; --fg-2: #6e6e73; }
@@ -66,6 +68,11 @@
             name: 'TV Remote', sub: 'A Siri Remote for your Mac', platform: 'Mac',
             bg: '#2a2a2c', icon: 'tv-remote-icon.png',
             shot: { src: 'tv-remote-shot.png', left: 760, top: -250, width: 290 }
+        },
+        'atoll-efficient': {
+            name: 'Atoll Efficient', nameSize: 80, sub: 'Atoll, minus the battery drain', platform: 'Mac',
+            bg: '#021b25', icon: 'atoll-efficient-icon.png',
+            art: { src: 'atoll-efficient-feature.webp', left: 450, top: 3, width: 1000 }
         },
         tempmanager: {
             name: 'tempmanager', sub: 'Temperatures in your tray', platform: 'Windows',
@@ -111,9 +118,9 @@
         document.body.style.setProperty('--bg', app.bg);
         document.body.style.setProperty('--fg', '#ffffff');
         document.body.style.setProperty('--fg-2', '#ffffffb3');
-        const s = app.shot;
+        const s = app.shot || app.art;
         document.body.innerHTML = `
-            <img class="shot" src="${A}${s.src}" alt="" style="left:${s.left}px;top:${s.top}px;width:${s.width}px">
+            <img class="${app.shot ? 'shot' : 'art'}" src="${A}${s.src}" alt="" style="left:${s.left}px;top:${s.top}px;width:${s.width}px">
             <div class="copy">
                 <img class="icon" src="${A}${app.icon}" alt="">
                 <h1 class="name"${app.nameSize ? ` style="font-size:${app.nameSize}px"` : ''}>${app.name}</h1>
