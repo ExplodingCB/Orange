@@ -297,7 +297,7 @@ code { font-family: var(--mono); font-size: .88em; overflow-wrap: anywhere; }
     /* The section nav becomes an iOS-style tab bar. */
     .nav {
         position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
-        display: grid; grid-template-columns: repeat(4, 1fr);
+        display: grid; grid-template-columns: repeat(5, 1fr);
         margin: 0;
         padding: 6px 8px max(6px, env(safe-area-inset-bottom));
         background: var(--bar);
@@ -317,7 +317,7 @@ code { font-family: var(--mono); font-size: .88em; overflow-wrap: anywhere; }
 
     .main { padding: 18px 16px calc(84px + env(safe-area-inset-bottom)); }
     .page-title { font-size: 30px; }
-    #mac, #windows, #web { scroll-margin-top: 64px; }
+    #mac, #windows, #web, #extensions { scroll-margin-top: 64px; }
 
     .carousel { gap: 14px; margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; }
     .editorial { grid-auto-columns: 86%; }

@@ -266,12 +266,43 @@
             ],
             compatibility: 'Any modern browser',
             category: 'Entertainment'
+        },
+        {
+            id: 'birdify',
+            repo: 'ExplodingCB/retwitterify-advanced',
+            stores: {
+                chrome: 'https://chromewebstore.google.com/detail/birdify/afdihceaapfgmkcekflpmodfemkcloge',
+                firefox: 'https://addons.mozilla.org/en-US/firefox/addon/retwitterify-advanced/'
+            },
+            license: 'MPL-2.0',
+            name: 'Birdify',
+            subtitle: 'The bird, back on X',
+            platform: 'extensions',
+            kicker: 'New extension',
+            headline: 'Bring back the blue bird, and Tweets with it',
+            feature: { src: 'birdify-before-after.webp', width: 1200, height: 750, bg: '#e3f0fc', w: '100%', top: '0' },
+            screenshots: [
+                { src: 'birdify-before-after.webp', width: 1200, height: 750, alt: 'X as it is today next to the same page with Birdify, showing the blue bird, Tweet, Retweet, and Twitter Blue' },
+                { src: 'birdify-tweets.webp', width: 1200, height: 750, alt: 'Post, Repost, Quote, Premium, Chat, and History crossed out and replaced with Tweet, Retweet, Quote Tweet, Twitter Blue, Messages, and Bookmarks' },
+                { src: 'birdify-switches.webp', width: 1200, height: 750, alt: 'The Birdify popup, with switches for the Twitter name, the blue bird, and Tweet wording' }
+            ],
+            about: [
+                'Birdify puts Twitter back on X. The blue bird replaces the X logo in the header, on the loading screen, and in your tab, tab titles and labels say Twitter again, and Post and Repost go back to Tweet and Retweet. Premium is Twitter Blue, and Chat and History read Messages and Bookmarks.',
+                'Separate switches control the name, the bird, and the Tweet wording, and one switch pauses all of it. It leaves tweets, names, messages, and links exactly as written, and it runs entirely in your browser without sending anything anywhere. Birdify isn’t affiliated with X Corp. or Twitter.'
+            ],
+            requires: ['Chrome', 'or Firefox'],
+            compatibility: 'Chrome, Edge, Brave, and other Chromium browsers, or Firefox 142 or later',
+            language: ['JavaScript', 'Manifest V3'],
+            category: 'Social',
+            asset: /chromium.*\.zip$/i,
+            release: { version: '2.2.1', date: '2026-10-08T23:04:43Z', size: 32409, url: 'https://github.com/ExplodingCB/retwitterify-advanced/releases/latest', notes: [] }
         }
     ];
 
-    const PLATFORM = { mac: 'Mac', windows: 'Windows', web: 'Web' };
+    const PLATFORM = { mac: 'Mac', windows: 'Windows', web: 'Web', extensions: 'Extensions' };
+    const STORES = { chrome: 'Chrome', firefox: 'Firefox' };
     const WEB_GROUPS = { tools: 'Tools', toys: 'Webtoys' };
-    const SECTIONS = ['discover', 'mac', 'windows', 'web'];
+    const SECTIONS = ['discover', 'mac', 'windows', 'web', 'extensions'];
     const byId = Object.fromEntries(APPS.map(app => [app.id, app]));
     const $ = (sel, root = document) => root.querySelector(sel);
     const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
@@ -281,9 +312,11 @@
         .replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 
+    // [number, unit], so the info strip can put the unit on its own line.
     const formatSize = bytes => {
+        if (bytes < 1048576) return [String(Math.max(1, Math.round(bytes / 1024))), 'KB'];
         const mb = bytes / 1048576;
-        return mb < 10 ? mb.toFixed(1) : String(Math.round(mb));
+        return [mb < 10 ? mb.toFixed(1) : String(Math.round(mb)), 'MB'];
     };
 
     const relativeDate = iso => {
@@ -300,6 +333,14 @@
     const repoUrl = app => `https://github.com/${app.repo}`;
     const isWeb = app => app.platform === 'web';
 
+    // Extensions send Firefox visitors to Firefox Add-ons and everyone else
+    // to the Chrome Web Store, which also covers Edge, Brave, and Opera.
+    const storeOrder = app => {
+        const ids = Object.keys(app.stores);
+        const preferred = /firefox\//i.test(navigator.userAgent) ? 'firefox' : 'chrome';
+        return ids.includes(preferred) ? [preferred, ...ids.filter(id => id !== preferred)] : ids;
+    };
+
     /* ---------- Shell ---------- */
 
     // Every page under /apps/ is the same empty body with its own link-preview
@@ -308,6 +349,7 @@
         discover: '<path d="M8 .9l2.1 4.4 4.8.6-3.5 3.3.9 4.8L8 11.7 3.7 14l.9-4.8L1.1 5.9l4.8-.6z"/>',
         mac: '<path d="M11.182.008C11.148-.03 9.923.023 8.857 1.18c-1.066 1.156-.902 2.482-.878 2.516s1.52.087 2.475-1.258.762-2.391.728-2.43m3.314 11.733c-.048-.096-2.325-1.234-2.113-3.422s1.675-2.789 1.698-2.854-.597-.79-1.254-1.157a3.7 3.7 0 0 0-1.563-.434c-.108-.003-.483-.095-1.254.116-.508.139-1.653.589-1.968.607-.316.018-1.256-.522-2.267-.665-.647-.125-1.333.131-1.824.328-.49.196-1.422.754-2.074 2.237-.652 1.482-.311 3.83-.067 4.56s.625 1.924 1.273 2.796c.576.984 1.34 1.667 1.659 1.899s1.219.386 1.843.067c.502-.308 1.408-.485 1.766-.472.357.013 1.061.154 1.782.539.571.197 1.111.115 1.652-.105.541-.221 1.324-1.059 2.238-2.758q.52-1.185.473-1.282"/>',
         windows: '<path d="M6.555 1.375 0 2.237v5.45h6.555zM0 13.795l6.555.933V8.313H0zm7.278-5.4.026 6.378L16 16V8.395zM16 0 7.33 1.244v6.414H16z"/>',
+        extensions: '<path d="M3.112 3.645A1.5 1.5 0 0 1 4.605 2H7a.5.5 0 0 1 .5.5v.382c0 .696-.497 1.182-.872 1.469a.5.5 0 0 0-.115.118l-.012.025L6.5 4.5v.003l.003.01q.005.015.036.053a.9.9 0 0 0 .27.194C7.09 4.9 7.51 5 8 5c.492 0 .912-.1 1.19-.24a.9.9 0 0 0 .271-.194.2.2 0 0 0 .036-.054l.003-.01v-.008l-.012-.025a.5.5 0 0 0-.115-.118c-.375-.287-.872-.773-.872-1.469V2.5A.5.5 0 0 1 9 2h2.395a1.5 1.5 0 0 1 1.493 1.645L12.645 6.5h.237c.195 0 .42-.147.675-.48.21-.274.528-.52.943-.52.568 0 .947.447 1.154.862C15.877 6.807 16 7.387 16 8s-.123 1.193-.346 1.638c-.207.415-.586.862-1.154.862-.415 0-.733-.246-.943-.52-.255-.333-.48-.48-.675-.48h-.237l.243 2.855A1.5 1.5 0 0 1 11.395 14H9a.5.5 0 0 1-.5-.5v-.382c0-.696.497-1.182.872-1.469a.5.5 0 0 0 .115-.118l.012-.025.001-.006v-.003l-.003-.01a.2.2 0 0 0-.036-.053.9.9 0 0 0-.27-.194C8.91 11.1 8.49 11 8 11s-.912.1-1.19.24a.9.9 0 0 0-.271.194.2.2 0 0 0-.036.054l-.003.01v.002l.001.006.012.025c.016.027.05.068.115.118.375.287.872.773.872 1.469v.382a.5.5 0 0 1-.5.5H4.605a1.5 1.5 0 0 1-1.493-1.645L3.356 9.5h-.238c-.195 0-.42.147-.675.48-.21.274-.528.52-.943.52-.568 0-.947-.447-1.154-.862C.123 9.193 0 8.613 0 8s.123-1.193.346-1.638C.553 5.947.932 5.5 1.5 5.5c.415 0 .733.246.943.52.255.333.48.48.675.48h.238z"/>',
         web: '<path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8m7.5-6.923c-.67.204-1.335.82-1.887 1.855A8 8 0 0 0 5.145 4H7.5zM4.09 4a9.3 9.3 0 0 1 .64-1.539 7 7 0 0 1 .597-.933A7.03 7.03 0 0 0 2.255 4zm-.582 3.5c.03-.877.138-1.718.312-2.5H1.674a7 7 0 0 0-.656 2.5zM4.847 5a12.5 12.5 0 0 0-.338 2.5H7.5V5zM8.5 5v2.5h2.99a12.5 12.5 0 0 0-.337-2.5zM4.51 8.5a12.5 12.5 0 0 0 .337 2.5H7.5V8.5zm3.99 0V11h2.653c.187-.765.306-1.608.338-2.5zM5.145 12q.208.58.468 1.068c.552 1.035 1.218 1.65 1.887 1.855V12zm.182 2.472a7 7 0 0 1-.597-.933A9.3 9.3 0 0 1 4.09 12H2.255a7 7 0 0 0 3.072 2.472M3.82 11a13.7 13.7 0 0 1-.312-2.5h-2.49c.062.89.291 1.733.656 2.5zm6.853 3.472A7 7 0 0 0 13.745 12H11.91a9.3 9.3 0 0 1-.64 1.539 7 7 0 0 1-.597.933M8.5 12v2.923c.67-.204 1.335-.82 1.887-1.855q.26-.487.468-1.068zm3.68-1h2.146c.365-.767.594-1.61.656-2.5h-2.49a13.7 13.7 0 0 1-.312 2.5m2.802-3.5a7 7 0 0 0-.656-2.5H12.18c.174.782.282 1.623.312 2.5zM11.27 2.461c.247.464.462.98.64 1.539h1.835a7 7 0 0 0-3.072-2.472c.218.284.418.598.597.933M10.855 4a8 8 0 0 0-.468-1.068C9.835 1.897 9.17 1.282 8.5 1.077V4z"/>'
     };
     const ARROWS = `
@@ -428,7 +470,7 @@
         const info = web ? app.info : [
             ['Price', 'Free', 'Open source'],
             ['Version', r.version, capitalize(relativeDate(r.date))],
-            ['Size', formatSize(r.size), 'MB'],
+            ['Size', ...formatSize(r.size)],
             ['Requires', app.requires[0], app.requires[1]],
             ['Language', app.language[0], app.language[1]],
             ['Category', app.category, PLATFORM[app.platform]]
@@ -445,16 +487,24 @@
             ] : [])
         ] : [
             ['Developer', 'Chase Culbertson'],
-            ['Size', `${formatSize(r.size)} MB`],
+            ['Size', formatSize(r.size).join(' ')],
             ['Category', app.category],
             ['Compatibility', app.compatibility],
             ['License', app.license || 'MIT'],
             ['Source code', `<a href="${repoUrl(app)}" target="_blank" rel="noopener noreferrer">github.com/${app.repo}</a>`],
             ...(app.upstream ? [
                 ['Fork of', `<a href="https://github.com/${app.upstream}" target="_blank" rel="noopener noreferrer">github.com/${app.upstream}</a>`]
-            ] : [])
+            ] : []),
+            ...(app.stores ? Object.entries(app.stores).map(([id, url]) => [
+                id === 'chrome' ? 'Chrome Web Store' : 'Firefox Add-ons',
+                `<a href="${url}" target="_blank" rel="noopener noreferrer">${new URL(url).host}</a>`
+            ]) : [])
         ];
-        const actions = web ? `
+        const [store, ...otherStores] = app.stores ? storeOrder(app) : [];
+        const actions = store ? `
+                        <a class="get get-fill" href="${app.stores[store]}" target="_blank" rel="noopener noreferrer">Add to ${STORES[store]}</a>${otherStores.map(id => `
+                        <a class="text-button" href="${app.stores[id]}" target="_blank" rel="noopener noreferrer">${STORES[id]}</a>`).join('')}
+                        <a class="text-button" href="${repoUrl(app)}" target="_blank" rel="noopener noreferrer">GitHub</a>` : web ? `
                         <a class="get get-fill" href="${app.url}" target="_blank" rel="noopener noreferrer">Open</a>
                         <a class="text-button" href="${app.url}" target="_blank" rel="noopener noreferrer">${host}</a>` : `
                         <a class="get get-fill" href="${escapeHtml(r.url)}" rel="noopener noreferrer">Get</a>
@@ -505,7 +555,7 @@
                 <ul class="notes">${r.notes.map(n => `<li>${n}</li>`).join('')}</ul>
             </section>` : ''}
 
-            ${web ? '' : `
+            ${web || app.stores ? '' : `
             <section class="block">
                 <div class="block-head"><h2>Install</h2></div>
                 ${app.install ? `<div class="command">
