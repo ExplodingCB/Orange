@@ -1,0 +1,15 @@
+#!/bin/sh
+# Re-renders the ChApp Store link-preview card when the app list, an icon, or
+# the card template changes, and adds the new image and meta tags to the
+# commit. Enabled per clone with: git config core.hooksPath .githooks
+
+git diff --cached --name-only | grep -qE '^(apps/apps\.js|assets/apps/[^/]*-icon\.|share-src/app-card\.html)' || exit 0
+
+if ! command -v node >/dev/null 2>&1; then
+    echo "pre-commit: node not found, so the store's share card was not checked." >&2
+    echo "pre-commit: run 'node share-src/render-store-card.mjs' before you push." >&2
+    exit 0
+fi
+
+node share-src/render-store-card.mjs || exit 1
+git add apps/index.html assets/apps/share/

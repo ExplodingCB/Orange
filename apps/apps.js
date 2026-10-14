@@ -299,6 +299,13 @@
         }
     ];
 
+    // share-src/app-card.html loads this file only for the list above, so the
+    // store's link preview always shows every app.
+    if (document.currentScript && document.currentScript.hasAttribute('data-list-only')) {
+        window.CHAPP_APPS = APPS;
+        return;
+    }
+
     const PLATFORM = { mac: 'Mac', windows: 'Windows', web: 'Web', extensions: 'Extensions' };
     const STORES = { chrome: 'Chrome', firefox: 'Firefox' };
     const WEB_GROUPS = { tools: 'Tools', toys: 'Webtoys' };
@@ -332,6 +339,7 @@
         `<img class="${cls}" src="${ASSETS}${app.iconFile || `${app.id}-icon.png`}" alt="" width="${size}" height="${size}" decoding="async">`;
     const repoUrl = app => `https://github.com/${app.repo}`;
     const isWeb = app => app.platform === 'web';
+    const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
 
     // Extensions send Firefox visitors to Firefox Add-ons and everyone else
     // to the Chrome Web Store, which also covers Edge, Brave, and Opera.
@@ -458,6 +466,44 @@
         });
     };
 
+    // Discover advances one card every few seconds and wraps back to the
+    // start. It holds still while the pointer or focus is on it, while it is
+    // off screen or the tab is hidden, and for a while after any manual swipe.
+    const ROTATE_MS = 6000;
+    const setupRotation = () => {
+        const shelf = $('.shelf-discover');
+        const list = $('.editorial', shelf);
+        let timer = 0;
+        let hovered = false;
+        let focused = false;
+        let visible = true;
+
+        const advance = () => {
+            const card = list.firstElementChild;
+            if (!card) return;
+            const step = card.getBoundingClientRect().width + parseFloat(getComputedStyle(list).columnGap || 0);
+            const atEnd = list.scrollLeft + list.clientWidth >= list.scrollWidth - 4;
+            list.scrollTo({ left: atEnd ? 0 : list.scrollLeft + step, behavior: 'smooth' });
+        };
+        const schedule = () => {
+            clearTimeout(timer);
+            if (reducedMotion.matches || hovered || focused || !visible || document.hidden || current) return;
+            if (list.scrollWidth <= list.clientWidth + 8) return;
+            timer = setTimeout(() => { advance(); schedule(); }, ROTATE_MS);
+        };
+
+        shelf.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') { hovered = true; schedule(); } });
+        shelf.addEventListener('pointerleave', () => { hovered = false; schedule(); });
+        shelf.addEventListener('focusin', () => { focused = true; schedule(); });
+        shelf.addEventListener('focusout', e => { if (!shelf.contains(e.relatedTarget)) { focused = false; schedule(); } });
+        // A swipe, a wheel, or an arrow press restarts the countdown.
+        ['pointerdown', 'wheel', 'touchstart', 'click'].forEach(type => shelf.addEventListener(type, schedule, { passive: true }));
+        document.addEventListener('visibilitychange', schedule);
+        reducedMotion.addEventListener('change', schedule);
+        new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; schedule(); }, { threshold: 0.5 }).observe(list);
+        return schedule;
+    };
+
     /* ---------- Product page ---------- */
 
     let productView;
@@ -579,6 +625,7 @@
     // sections are /apps/#mac and so on. Old /apps/#<id> links still work.
     let current = null;
     let storeScroll = 0;
+    let rotate = () => {};
 
     const appFromPath = () => {
         const m = location.pathname.match(/\/apps\/([^/]+)\/?$/);
@@ -587,13 +634,24 @@
 
     const setActiveNav = id => $$('.nav a').forEach(a => a.classList.toggle('active', a.dataset.nav === id));
 
+    // A section picked from the nav stays highlighted until the visitor
+    // scrolls on their own. The last few shelves are too short to reach the
+    // top of the window, so measuring alone would light up the wrong one.
+    let pinned = null;
+    const unpin = () => { pinned = null; };
+    ['wheel', 'touchmove'].forEach(type => window.addEventListener(type, unpin, { passive: true }));
+    window.addEventListener('keydown', e => {
+        if (/^(Arrow(Up|Down)|Page(Up|Down)|Home|End| )$/.test(e.key)) unpin();
+    });
+
     // Highlight the nav item for whichever store section is in view.
     const spy = () => {
         if (current) return;
-        const y = window.scrollY + window.innerHeight * 0.4;
+        if (pinned) return setActiveNav(pinned);
+        const y = window.scrollY + Math.min(window.innerHeight * 0.25, 160);
         let active = 'discover';
         for (const id of SECTIONS.slice(1)) {
-            if (document.getElementById(id).offsetTop <= y) active = id;
+            if (document.getElementById(id).getBoundingClientRect().top + window.scrollY <= y) active = id;
         }
         if (window.scrollY > 0 && window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4) {
             active = SECTIONS[SECTIONS.length - 1];
@@ -615,6 +673,7 @@
             document.title = `${app.name} · ${STORE}`;
             setActiveNav(app.platform);
             window.scrollTo(0, 0);
+            rotate();
             return;
         }
 
@@ -624,10 +683,16 @@
         storeView.hidden = false;
         document.title = STORE;
 
-        if (hash === 'discover') window.scrollTo(0, 0);
-        else if (SECTIONS.includes(hash)) document.getElementById(hash).scrollIntoView();
-        else if (wasProduct) window.scrollTo(0, storeScroll);
+        if (SECTIONS.includes(hash)) {
+            const behavior = wasProduct || reducedMotion.matches ? 'auto' : 'smooth';
+            pinned = hash;
+            if (hash === 'discover') window.scrollTo({ top: 0, behavior });
+            else document.getElementById(hash).scrollIntoView({ behavior });
+        } else if (wasProduct) {
+            window.scrollTo(0, storeScroll);
+        }
         spy();
+        rotate();
     };
 
     // Links inside the store change the view without reloading the page.
@@ -718,6 +783,7 @@
     storeView = $('#store');
     renderStore();
     setupArrows();
+    rotate = setupRotation();
     route();
     refreshReleases();
 })();

@@ -3,6 +3,11 @@
   Source for the ChApp Store link-preview images in assets/apps/share/.
   One card per app, picked with ?app=<id>; no ?app renders the store's card.
 
+  The store card reads its icons from apps/apps.js, so it never needs editing.
+  share-src/render-store-card.sh renders it and points apps/index.html at the
+  result, and the pre-commit hook in .githooks runs that script whenever the
+  app list or an icon changes.
+
   Render each card at 1200 x 630 (2x), e.g. on Windows:
 
     msedge --headless=new --hide-scrollbars --window-size=1200,630 \
@@ -50,11 +55,12 @@
     .store .brand img { width: 112px; height: 112px; }
     .store .brand h1 { margin: 0; font-size: 104px; font-weight: 700; letter-spacing: -.04em; line-height: 1; }
     .store .tagline { position: absolute; left: 84px; top: 238px; margin: 0; font-size: 42px; font-weight: 500; letter-spacing: -.015em; color: var(--fg-2); }
-    .store .icons { position: absolute; left: 80px; bottom: 60px; display: flex; gap: 14px; }
-    .store .icons img { width: 100px; height: 100px; }
+    .store .icons { position: absolute; left: 80px; right: 80px; bottom: 60px; display: flex; flex-wrap: wrap; gap: 14px; }
+    .store .icons img { width: var(--icon, 100px); height: var(--icon, 100px); }
 </style>
 </head>
 <body>
+<script src="../apps/apps.js" data-list-only></script>
 <script>
     const A = '../assets/apps/';
     const LOGO = A + 'chase-logo.png';
@@ -133,12 +139,17 @@
                 <div class="foot"><img src="${LOGO}" alt="">ChApp Store <span>&middot; ${app.platform}</span></div>
             </div>`;
     } else {
+        // Every app in the store, in store order, one row while they fit at
+        // 72px or more and a second row after that.
+        const list = window.CHAPP_APPS;
+        const perRow = Math.min(list.length, 13);
+        const size = Math.min(100, Math.floor((1040 - 14 * (perRow - 1)) / perRow));
+        const icons = list.map(a => `<img src="${A}${a.iconFile || `${a.id}-icon.png`}" alt="">`).join('');
         document.body.className = 'store';
-        const icons = Object.values(APPS).map(a => `<img src="${A}${a.icon}" alt="">`).join('');
         document.body.innerHTML = `
             <div class="brand"><img src="${LOGO}" alt=""><h1>ChApp Store</h1></div>
             <p class="tagline">Free apps for Mac, Windows, and the web.</p>
-            <div class="icons">${icons}</div>`;
+            <div class="icons" style="--icon:${size}px">${icons}</div>`;
     }
 </script>
 </body>
