@@ -189,6 +189,35 @@
             category: 'Utilities'
         },
         {
+            id: 'weatherstral',
+            url: 'https://weather.explodingcb.com/',
+            iconFile: 'weatherstral-icon.svg',
+            name: 'Weatherstral',
+            subtitle: 'AI weather in your browser',
+            platform: 'web',
+            group: 'tools',
+            kicker: 'New app',
+            headline: 'A weather forecast from a tiny AI that lives in your browser',
+            feature: { src: 'weatherstral-top.webp', width: 860, height: 1250, bg: '#14306a', w: '46%', top: '9%' },
+            screenshots: [
+                { src: 'weatherstral-top.webp', width: 860, height: 1250, alt: 'Weatherstral showing a sunny 68 degrees in Indianapolis, the rain outlook, and the hourly forecast' },
+                { src: 'weatherstral-chart.webp', width: 860, height: 1250, alt: 'The interactive temperature graph with a tooltip, comparing Weatherstral’s forecast with Open-Meteo’s' }
+            ],
+            about: [
+                'Search any city and get the next 24 hours of weather, hour by hour: temperature, the chance of rain, and how cloudy it will be. Drag across the graph to read any hour, and flip it between temperature and rain chance.',
+                'The forecast comes from Timestral, a small open AI model from Mistral that predicts what a series of numbers will do next. Weatherstral feeds it the last week of hourly readings for your city (temperature, humidity, pressure, clouds, wind, and rain) and the model works out the next day on its own. It runs inside your browser, so there is nothing to install and no account. The first visit downloads the model (about 110 MB) once, then it loads from your browser’s cache.',
+                'It’s an experiment, not a weather service. In my tests its temperatures were under 1°F off an hour ahead and about 3°F off a day ahead, and its rain odds are honest but only a little better than guessing from recent rain. Open-Meteo’s own forecast is shown next to it so you can compare.'
+            ],
+            features: ['24-hour forecast', 'Rain chances', 'Interactive graph', 'City search', 'Fahrenheit and Celsius'],
+            info: [
+                ['Price', 'Free', 'No account'],
+                ['Runs in', 'Browser', 'Any device'],
+                ['Category', 'Weather', 'Web']
+            ],
+            compatibility: 'Any modern browser (about 110 MB on the first visit)',
+            category: 'Weather'
+        },
+        {
             id: 'betrcooking',
             url: 'https://betrcooking.com/',
             name: 'BetrCooking',

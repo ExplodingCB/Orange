@@ -40,6 +40,7 @@
     /* App cards */
     .copy { position: absolute; left: 76px; top: 72px; bottom: 64px; width: 540px; display: flex; flex-direction: column; }
     .icon { width: 184px; height: 184px; margin-left: -14px; }
+    .blurb { margin: 20px 0 0; font-size: 26px; font-weight: 500; line-height: 1.32; letter-spacing: -.005em; color: var(--fg); }
     .name { margin: 22px 0 0; font-size: 92px; font-weight: 700; letter-spacing: -.035em; line-height: 1; }
     .sub { margin: 16px 0 0; font-size: 38px; font-weight: 500; letter-spacing: -.015em; line-height: 1.2; color: var(--fg-2); }
     .foot { display: flex; align-items: center; gap: 14px; margin-top: auto; font-size: 27px; font-weight: 600; letter-spacing: -.01em; }
@@ -100,6 +101,12 @@
             bg: '#2b2d31', icon: 'notebook-to-pdf-icon.png',
             shot: { src: 'notebook-to-pdf-home.webp', left: 610, top: 110, width: 760 }
         },
+        weatherstral: {
+            name: 'Weatherstral', nameSize: 76, sub: 'AI weather in your browser', subSize: 34, platform: 'Web',
+            blurb: 'Search any city for the next 24 hours of temperature and rain chances, predicted by a small AI model running right in your browser.',
+            bg: '#14306a', icon: 'weatherstral-icon.svg', iconSize: 116,
+            shot: { src: 'weatherstral-top.webp', left: 700, top: 76, width: 400 }
+        },
         betrcooking: {
             name: 'BetrCooking', nameSize: 80, sub: 'The family recipe book', platform: 'Web',
             bg: '#1b4332', icon: 'betrcooking-icon.png',
@@ -133,9 +140,9 @@
         document.body.innerHTML = `
             <img class="${app.shot ? 'shot' : 'art'}" src="${A}${s.src}" alt="" style="left:${s.left}px;top:${s.top}px;width:${s.width}px">
             <div class="copy">
-                <img class="icon" src="${A}${app.icon}" alt="">
+                <img class="icon" src="${A}${app.icon}" alt=""${app.iconSize ? ` style="width:${app.iconSize}px;height:${app.iconSize}px"` : ''}>
                 <h1 class="name"${app.nameSize ? ` style="font-size:${app.nameSize}px"` : ''}>${app.name}</h1>
-                <p class="sub">${app.sub}</p>
+                <p class="sub"${app.subSize ? ` style="font-size:${app.subSize}px"` : ''}>${app.sub}</p>${app.blurb ? `<p class="blurb">${app.blurb}</p>` : ''}
                 <div class="foot"><img src="${LOGO}" alt="">ChApp Store <span>&middot; ${app.platform}</span></div>
             </div>`;
     } else {
