@@ -192,6 +192,7 @@
             id: 'weatherstral',
             url: 'https://weather.explodingcb.com/',
             iconFile: 'weatherstral-icon.svg',
+            source: 'ExplodingCB/weatherstral',
             name: 'Weatherstral',
             subtitle: 'AI weather in your browser',
             platform: 'web',
@@ -210,7 +211,7 @@
             ],
             features: ['24-hour forecast', 'Rain chances', 'Interactive graph', 'City search', 'Fahrenheit and Celsius'],
             info: [
-                ['Price', 'Free', 'No account'],
+                ['Price', 'Free', 'Open source'],
                 ['Runs in', 'Browser', 'Any device'],
                 ['Category', 'Weather', 'Web']
             ],
