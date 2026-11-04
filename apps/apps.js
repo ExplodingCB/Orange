@@ -189,33 +189,32 @@
             category: 'Utilities'
         },
         {
-            id: 'weatherstral',
+            id: 'indystral',
             url: 'https://weather.explodingcb.com/',
-            iconFile: 'weatherstral-icon.svg',
-            source: 'ExplodingCB/weatherstral',
-            name: 'Weatherstral',
-            subtitle: 'AI weather in your browser',
+            iconFile: 'indystral-icon.svg',
+            name: 'Indystral',
+            subtitle: 'Indianapolis weather, hour by hour',
             platform: 'web',
             group: 'tools',
             kicker: 'New app',
-            headline: 'A weather forecast from a tiny AI that lives in your browser',
-            feature: { src: 'weatherstral-top.webp', width: 860, height: 1250, bg: '#14306a', w: '46%', top: '9%' },
+            headline: 'An Indianapolis forecast, scored against the NWS',
+            feature: { src: 'indystral-forecast.webp', width: 1200, height: 750, bg: '#0b3a57', w: '86%', top: '11%' },
             screenshots: [
-                { src: 'weatherstral-top.webp', width: 860, height: 1250, alt: 'Weatherstral showing a sunny 68 degrees in Indianapolis, the rain outlook, and the hourly forecast' },
-                { src: 'weatherstral-chart.webp', width: 860, height: 1250, alt: 'The interactive temperature graph with a tooltip, comparing Weatherstral’s forecast with Open-Meteo’s' }
+                { src: 'indystral-forecast.webp', width: 1200, height: 750, alt: 'The Indystral forecast page: a temperature graph, hourly rain chances, and wind, each shown next to the NWS forecast' },
+                { src: 'indystral-record.webp', width: 1200, height: 750, alt: 'The track record on the About page, with Indystral’s temperature error below the National Blend’s and the NWS’s at every range' }
             ],
             about: [
-                'Search any city and get the next 24 hours of weather, hour by hour: temperature, the chance of rain, and how cloudy it will be. Drag across the graph to read any hour, and flip it between temperature and rain chance.',
-                'The forecast comes from Timestral, a small open AI model from Mistral that predicts what a series of numbers will do next. Weatherstral feeds it the last week of hourly readings for your city (temperature, humidity, pressure, clouds, wind, and rain) and the model works out the next day on its own. It runs inside your browser, so there is nothing to install and no account. The first visit downloads the model (about 110 MB) once, then it loads from your browser’s cache.',
-                'It’s an experiment, not a weather service. In my tests its temperatures were under 1°F off an hour ahead and about 3°F off a day ahead, and its rain odds are honest but only a little better than guessing from recent rain. Open-Meteo’s own forecast is shown next to it so you can compare.'
+                'Indystral forecasts one place: Indianapolis International Airport, hour by hour for the next 72 hours. You get temperature, the chance of rain, wind, dew point, and pressure, with the National Weather Service forecast right next to them and the last 24 hours of what was forecast and what actually happened.',
+                'Two models do the forecasting, both fine-tuned from Timestral, Mistral’s open time-series model, on about 17 years of Indianapolis weather. They read the professional forecast models, like the HRRR and the National Blend, and learn where each one tends to be wrong at this airport.',
+                'I kept a full year out of training and choosing the models, and scored it at the end. At 13 to 24 hours ahead, its temperatures were off by 1.72°F on average, against 2.39°F for the NWS. Its hourly rain chances beat the baselines I could test them against, but there’s no history of the NWS’s hourly rain chances, so that comparison only starts now. The full results are on the site’s About page.'
             ],
-            features: ['24-hour forecast', 'Rain chances', 'Interactive graph', 'City search', 'Fahrenheit and Celsius'],
+            features: ['72-hour forecast', 'Hourly rain chances', 'NWS side by side', 'Forecast vs. what happened', 'Published track record'],
             info: [
-                ['Price', 'Free', 'Open source'],
+                ['Price', 'Free', 'No account'],
                 ['Runs in', 'Browser', 'Any device'],
                 ['Category', 'Weather', 'Web']
             ],
-            compatibility: 'Any modern browser (about 110 MB on the first visit)',
+            compatibility: 'Any modern browser. Forecasts Indianapolis only.',
             category: 'Weather'
         },
         {
