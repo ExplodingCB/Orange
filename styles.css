@@ -116,7 +116,7 @@ h1 {
 .social-links a { display: inline-flex; align-items: center; gap: .5rem; min-height: 44px; padding-block: .5rem; }
 .social-icon { width: 1rem; height: 1rem; flex: none; }
 .footer { display: flex; align-items: center; gap: 2rem; padding-block: 1.5rem 2rem; font-size: .9375rem; color: var(--muted); }
-.footer-location { margin-left: auto; }
+.footer-mark { width: 1.5rem; height: 1.5rem; margin-left: auto; flex: none; }
 .back-top { padding-block: .5rem; }
 
 /* The ASCII forest grows in from beside the text and runs off the edge of the window. */
@@ -223,9 +223,8 @@ h1 {
     .email { font-size: 1.35rem; }
     .social-links { gap: .25rem 1rem; }
     .footer { flex-wrap: wrap; gap: .5rem 1.5rem; }
-    .footer-location { margin-left: 0; }
+    .footer-mark { margin-left: 0; }
     .back-top { margin-left: auto; }
-    .footer-location { flex-basis: 100%; }
 }
 @media (max-width: 380px) {
     .site-shell { width: calc(100% - 2rem); }
