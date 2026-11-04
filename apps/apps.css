@@ -68,7 +68,7 @@ img { display: block; }
     border-right: 1px solid var(--sep);
 }
 .brand { display: flex; align-items: center; gap: 9px; padding: 0 8px; font-weight: 600; font-size: 15px; letter-spacing: -.01em; }
-.brand img { width: 28px; height: 28px; }
+.brand-mark { width: 26px; height: 26px; flex: none; margin: 1px; }
 .nav { display: grid; gap: 1px; margin-top: 22px; }
 .nav a {
     display: flex; align-items: center; gap: 9px;

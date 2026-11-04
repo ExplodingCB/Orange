@@ -53,7 +53,8 @@ p, h1, h2, pre { margin: 0; }
     gap: 2rem;
     min-height: 98px;
 }
-.nav-name { font-size: 1.5rem; white-space: nowrap; }
+.nav-name { display: inline-flex; align-items: center; gap: .45em; font-size: 1.5rem; white-space: nowrap; }
+.nav-mark { width: 1.15em; height: 1.15em; flex: none; }
 .nav-links { display: flex; gap: 1.75rem; font-size: 1.0625rem; }
 .nav-links a { color: var(--muted); padding-block: .65rem; }
 .nav-links a:hover { color: var(--paper); }

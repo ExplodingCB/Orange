@@ -421,7 +421,7 @@
             <div class="app">
                 <aside class="sidebar">
                     <a class="brand" href="${BASE}">
-                        <img src="${ASSETS}chase-logo.png" alt="" width="28" height="28">
+                        <svg class="brand-mark" viewBox="0 0 100 100" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M50 5 L88.97 27.5 L88.97 72.5 L50 95 L11.03 72.5 L11.03 27.5Z M57.87 28.39 L72.65 46.01 L64.78 67.62 L42.13 71.61 L27.35 53.99 L35.22 32.38Z M57.87 28.39 L50 5 M72.65 46.01 L88.97 27.5 M64.78 67.62 L88.97 72.5 M42.13 71.61 L50 95 M27.35 53.99 L11.03 72.5 M35.22 32.38 L11.03 27.5 M72.65 46.01 L50 50 L42.13 71.61 M50 50 L35.22 32.38"/></svg>
                         <span>${STORE}</span>
                     </a>
                     <nav class="nav" aria-label="Store">${SECTIONS.map(navItem).join('')}</nav>
