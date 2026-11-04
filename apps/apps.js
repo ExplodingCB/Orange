@@ -145,7 +145,7 @@
             platform: 'web',
             group: 'tools',
             kicker: 'On the web',
-            headline: 'College is a lot. Keep it together.',
+            headline: 'Your classes and due dates in one place',
             feature: { src: 'termloft-home.webp', width: 1200, height: 683, bg: '#18382c', w: '86%', top: '11%' },
             screenshots: [
                 { src: 'termloft-home.webp', width: 1200, height: 683, alt: 'The Termloft home page, with an example week of classes and due dates' }
@@ -251,7 +251,7 @@
             platform: 'web',
             group: 'toys',
             kicker: 'New game',
-            headline: 'A tiny village on your desk, and your hands are the weather',
+            headline: 'Knock down a tiny village with your bare hands',
             feature: { src: 'tabletop-tyrant-domain.webp', width: 1200, height: 750, bg: '#101d17', w: '86%', top: '11%' },
             screenshots: [
                 { src: 'tabletop-tyrant-hero.webp', width: 1200, height: 750, alt: 'The start screen, with a little village turning slowly beside the title' },
