@@ -70,6 +70,7 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
     .clouds { background-image: url("assets/clouds-tall.webp?v=20261110-wind"); background-position: center bottom; }
 }
 .meadow { position: absolute; left: 0; z-index: 0; display: block; pointer-events: none; }
+.meadow-near { z-index: 1; }   /* the blades in front of the flower's foot */
 
 .topbar { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; }
 .mark { display: inline-flex; padding: 8px; margin: -8px; }

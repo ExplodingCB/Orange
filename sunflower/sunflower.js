@@ -355,7 +355,7 @@ function build(THREE, W, H, unit, meadow) {
     const hy = neck.y, V3 = (x, y, z) => new THREE.Vector3(x, y, z);
     const curve = new THREE.CatmullRomCurve3([V3(0, 0, 0), V3(.1, .3 * hy, .03), V3(0, .62 * hy, -.02), V3(-.13, .86 * hy, -.07),
         neck.clone().addScaledVector(hz, -.14).add(V3(0, -.02, 0)), neck]);
-    const Ls = curve.getLength(), HIDE = .045;
+    const Ls = curve.getLength(), HIDE = .008;   // the foot stands behind the meadow's nearer blades
     const stemR = (s) => .034 - .013 * s + .01 * sstep(.93, 1, s);
     const stemS = (s, v) => {
         const sc = clamp(s, 0, 1), c = curve.getPointAt(sc), t = curve.getTangentAt(sc);
@@ -424,8 +424,8 @@ function build(THREE, W, H, unit, meadow) {
     }
     for (let j = 0, n = ceil(Ls * k / 10); j < n; j++) {   // lengthwise up the stem, a lit side and a shaded side
         const s = (j + .5 + R(-.2, .2)) / n, wu = stemR(s) * 2 * k, ao = 1 - .3 * sstep(.72, .95, s);
-        if (s < HIDE + .01) continue;
-        const op = sstep(HIDE, HIDE + .05, s) * .6 + .4;
+        if (s < HIDE) continue;
+        const op = 1;
         for (let c = 0; c < 2; c++) {   // shaded side first, then the lit side over it
             const v = (c ? .39 : .11) + R(-.02, .02);
             dab(stemS, s, v, R(-.03, .03), [s, v, 0, 0], [0, 0, ao, 0], R(20, 30), clamp(wu * .55, 4.5, 7), op, c * .01);
@@ -447,15 +447,6 @@ function build(THREE, W, H, unit, meadow) {
         }
         dab(lf.pS, .5, .25, 0, [1, 0, lf.ph, 0], [2 + i, 0, .85, 0], clamp(lf.Lb * k * .3, 9, 22), 5);
     });
-    // Meadow grass in front of the foot of the stem: upright, leaning with the wind like the
-    // field's own dabs. These don't move. Kept clear of the canvas edge so nothing is cut.
-    for (let j = 0, n = round(clamp(22 + k * .06, 24, 36)); j < n; j++) {
-        const near = j < n * .55, len = R(12, 30), wid = R(3.4, 7.6), lean = .17 + R(-.3, .3);
-        const x = (near ? R(-9, 9) : R(-46, 46)) / k, yb = max(near ? R(2, 21) : R(2, 13), wid * .5 + 3) / k, y = yb + len / k * .5;
-        const c1 = pick(x + R(-4, 4) / k, y + R(-4, 4) / k), c2 = pick(x + R(-14, 14) / k, y + R(-10, 10) / k);
-        dabs.push([9 - yb, x, y, .5, sin(lean), cos(lean), 0, ...c1, 0, ...c2, 0, 5, 1, 0, len, wid, r() * 100, 1]);
-    }
-
     dabs.sort((a, b) => a[0] - b[0]);
     const nI = dabs.length, D = new Float32Array(nI * 21);
     dabs.forEach((d, i) => D.set(d.slice(1), i * 21));
@@ -549,77 +540,41 @@ void main() {
     o = vec4(c * (1. + .05 * s + .04 * smoothstep(.5, 0., abs(s + .2))) * al, al);   // a lit side and a streak
 }`;
 
-function scenery(home) {
-    const clouds = home.querySelector('.clouds');
+// One canvas of blades. The meadow uses two: one behind the flower and one in front of it.
+function bladeLayer() {
     const cv = document.createElement('canvas');
     cv.className = 'meadow';
     cv.setAttribute('aria-hidden', 'true');
     cv.style.display = 'none';
     const gl = cv.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: true, depth: false, stencil: false });
-    let ok = !!gl, count = 0, tile = 0, cx = 0, uni = null, size = [1, 1], unit = 1, buf = null;
-    if (ok) {
-        const sh = (type, src) => { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return x; };
-        const prog = gl.createProgram();
-        gl.attachShader(prog, sh(gl.VERTEX_SHADER, BLADE_VS));
-        gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, BLADE_FS));
-        gl.linkProgram(prog);
-        ok = gl.getProgramParameter(prog, gl.LINK_STATUS);
-        if (ok) {
-            gl.useProgram(prog);
-            uni = { S: gl.getUniformLocation(prog, 'uS'), P: gl.getUniformLocation(prog, 'uP'), G: gl.getUniformLocation(prog, 'uG') };
-            buf = gl.createBuffer();
-            gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-            [[4, 0], [3, 16], [3, 28]].forEach(([n, off], i) => { gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, n, gl.FLOAT, false, 40, off); gl.vertexAttribDivisor(i, 1); });
-            gl.enable(gl.BLEND);
-            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-            (clouds || home.firstChild).after(cv);
-        }
-    }
+    if (!gl) return null;
+    const sh = (type, src) => { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return x; };
+    const prog = gl.createProgram();
+    gl.attachShader(prog, sh(gl.VERTEX_SHADER, BLADE_VS));
+    gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, BLADE_FS));
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
+    gl.useProgram(prog);
+    const uni = { S: gl.getUniformLocation(prog, 'uS'), P: gl.getUniformLocation(prog, 'uP'), G: gl.getUniformLocation(prog, 'uG') };
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    [[4, 0], [3, 16], [3, 28]].forEach(([n, off], i) => { gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, n, gl.FLOAT, false, 40, off); gl.vertexAttribDivisor(i, 1); });
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    let count = 0, size = [1, 1];
     return {
-        // m: how the background image sits on the page. field: that image and a small copy of its pixels.
-        resize(m, field, u, dpr) {
-            unit = u;
-            if (clouds) {   // widen the cloud layer by a tile each side, so it can slide and wrap
-                tile = field.iw * m.sc;
-                Object.assign(clouds.style, { left: -tile + 'px', right: 'auto', width: m.W + 2 * tile + 'px', backgroundSize: tile + 'px auto', backgroundPositionX: m.ox + tile + 'px' });
-            }
-            if (!ok) return;
-            const hz = m.oy + (field.iw > field.ih ? .84 : .86) * field.ih * m.sc;   // the horizon on the page
-            const top = max(0, Math.floor(hz - 30 * u)), h = m.H - top, deep = m.H - hz;
-            count = 0;
-            if (deep < 8) { cv.style.display = 'none'; return; }
-            cv.width = Math.ceil(m.W * dpr); cv.height = Math.ceil(h * dpr);
+        cv,
+        // Blades are [x, y on the page, length, half width, lean, phase, depth, r, g, b]; top is where the canvas starts.
+        set(blades, top, W, h, dpr) {
+            count = blades.length;
+            if (!count) { cv.style.display = 'none'; return; }
+            cv.width = Math.ceil(W * dpr); cv.height = Math.ceil(h * dpr);
             Object.assign(cv.style, { top: top + 'px', height: cv.height / dpr + 'px', width: cv.width / dpr + 'px' });
             size = [cv.width / dpr, cv.height / dpr];
             gl.viewport(0, 0, cv.width, cv.height);
-            const pick = (x, y) => {
-                const i = (clamp(round((y - m.oy) / m.sc / 4), 0, field.h - 1) * field.w + clamp(round((x - m.ox) / m.sc / 4), 0, field.w - 1)) * 4;
-                return [field.d[i] / 255, field.d[i + 1] / 255, field.d[i + 2] / 255];
-            };
-            // One blade per cell of a jittered grid, as paint.html lays its own, far ones first.
-            const r = rng(77), R = (a, b) => a + (b - a) * r(), blades = [];
-            const cell = sqrt(30 * 7.5 * .6 / 1.7) * u;
-            for (let y = hz + .14 * deep; y < m.H + 24 * u; y += cell) for (let x = -cell; x < m.W + cell; x += cell) {
-                const bx = x + r() * cell, by = y + r() * cell, ft = clamp((by - hz) / deep, 0, 1);
-                const len = R(24, 52) * (.5 + ft * .9) * u, hw = R(2.6, 4.6) * (.7 + .5 * ft) * u;
-                const lean = .16 + .5 * sin(bx * .009 / u + by * .02 / u) * sin(bx * .0031 / u + 1.7) + R(-.14, .14);
-                const c = pick(bx + R(-3, 3) * u, min(by, m.H - 1) - len * R(.2, .6)), v = 1 + R(-.06, .06) - (r() < .15 ? .1 : 0);
-                blades.push([bx, by - top, len, hw, lean, r(), ft, c[0] * v, c[1] * v, c[2] * v]);
-            }
-            blades.sort((a, b) => a[1] - b[1]);
-            count = blades.length;
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(blades.flat()), gl.STATIC_DRAW);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(blades.flatMap((b) => [b[0], b[1] - top, ...b.slice(2)])), gl.STATIC_DRAW);
         },
-        // t: wind time. gusts: [start, strength, length]. fx: the flower's x on the page. dt: seconds since the last frame.
-        draw(t, gusts, fx, dt, speed) {
-            if (clouds && tile) {
-                cx = (cx + dt * speed * unit) % tile;
-                clouds.style.transform = `translate3d(${cx.toFixed(2)}px,0,0)`;
-            }
-            if (!ok || !count || gl.isContextLost()) return;
-            const g = new Float32Array(9).fill(1);
-            gusts.slice(-3).forEach((x, i) => g.set(x, i * 3));
-            for (let i = gusts.length; i < 3; i++) g[i * 3 + 1] = 0;
+        draw(t, g, fx, unit) {
+            if (!count || gl.isContextLost()) return;
             gl.uniform2f(uni.S, size[0], size[1]);
             gl.uniform3f(uni.P, t, fx, unit);
             gl.uniform3fv(uni.G, g);
@@ -628,10 +583,64 @@ function scenery(home) {
             gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 16, count);
             cv.style.display = '';
         },
+        destroy() { cv.remove(); gl.getExtension('WEBGL_lose_context')?.loseContext(); },
+    };
+}
+
+function scenery(home, host) {
+    const clouds = home.querySelector('.clouds');
+    // The far blades sit under the flower, the near ones over it, so its foot stands in the grass.
+    const far = bladeLayer(), near = far && bladeLayer();
+    if (near) { (clouds || home.firstChild).after(far.cv); host.after(near.cv); near.cv.classList.add('meadow-near'); }
+    let tile = 0, cx = 0, unit = 1;
+    return {
+        // m: how the background image sits on the page. field: that image and a small copy of its pixels.
+        // foot: the page y of the foot of the stem.
+        resize(m, field, u, dpr, foot) {
+            unit = u;
+            if (clouds) {   // widen the cloud layer by a tile each side, so it can slide and wrap
+                tile = field.iw * m.sc;
+                Object.assign(clouds.style, { left: -tile + 'px', right: 'auto', width: m.W + 2 * tile + 'px', backgroundSize: tile + 'px auto', backgroundPositionX: m.ox + tile + 'px' });
+            }
+            if (!near) return;
+            const hz = m.oy + (field.iw > field.ih ? .84 : .86) * field.ih * m.sc;   // the horizon on the page
+            const top = max(0, Math.floor(hz - 30 * u)), deep = m.H - hz, blades = [];
+            if (deep >= 8) {
+                const pick = (x, y) => {
+                    const i = (clamp(round((y - m.oy) / m.sc / 4), 0, field.h - 1) * field.w + clamp(round((x - m.ox) / m.sc / 4), 0, field.w - 1)) * 4;
+                    return [field.d[i] / 255, field.d[i + 1] / 255, field.d[i + 2] / 255];
+                };
+                // One blade per cell of a jittered grid, as paint.html lays its own, far ones first.
+                const r = rng(77), R = (a, b) => a + (b - a) * r();
+                const cell = sqrt(30 * 7.5 * .6 / 1.7) * u;
+                for (let y = hz + .14 * deep; y < m.H + 24 * u; y += cell) for (let x = -cell; x < m.W + cell; x += cell) {
+                    const bx = x + r() * cell, by = y + r() * cell, ft = clamp((by - hz) / deep, 0, 1);
+                    const len = R(24, 52) * (.5 + ft * .9) * u, hw = R(2.6, 4.6) * (.7 + .5 * ft) * u;
+                    const lean = .16 + .5 * sin(bx * .009 / u + by * .02 / u) * sin(bx * .0031 / u + 1.7) + R(-.14, .14);
+                    const c = pick(bx + R(-3, 3) * u, min(by, m.H - 1) - len * R(.2, .6)), v = 1 + R(-.06, .06) - (r() < .15 ? .1 : 0);
+                    blades.push([bx, by, len, hw, lean, r(), ft, c[0] * v, c[1] * v, c[2] * v]);
+                }
+                blades.sort((a, b) => a[1] - b[1]);
+            }
+            const cut = blades.findIndex((b) => b[1] > foot - 2 * u), at = cut < 0 ? blades.length : cut;
+            far.set(blades.slice(0, at), top, m.W, m.H - top, dpr);
+            near.set(blades.slice(at), top, m.W, m.H - top, dpr);
+        },
+        // t: wind time. gusts: [start, strength, length]. fx: the flower's x on the page. dt: seconds since the last frame.
+        draw(t, gusts, fx, dt, speed) {
+            if (clouds && tile) {
+                cx = (cx + dt * speed * unit) % tile;
+                clouds.style.transform = `translate3d(${cx.toFixed(2)}px,0,0)`;
+            }
+            if (!near) return;
+            const g = new Float32Array(9).fill(1);
+            gusts.slice(-3).forEach((x, i) => g.set(x, i * 3));
+            for (let i = gusts.length; i < 3; i++) g[i * 3 + 1] = 0;
+            far.draw(t, g, fx, unit); near.draw(t, g, fx, unit);
+        },
         destroy() {
             if (clouds) clouds.removeAttribute('style');
-            cv.remove();
-            gl?.getExtension('WEBGL_lose_context')?.loseContext();
+            far?.destroy(); near?.destroy();
         },
     };
 }
@@ -645,7 +654,7 @@ function mount(THREE, host) {
     const R = new THREE.WebGLRenderer({ canvas, context: gl, alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false });
     const standIn = host.querySelector('.sunflower-placeholder');
     let shaderFailed = false, dead = false, raf = 0, shown = false, seen = true, model = null, last = 0, drawn = 0, force = .021, unitPx = 1, hostX = 0;
-    const land = scenery(host.parentNode);
+    const land = scenery(host.parentNode, host);
     R.debug.onShaderError = () => { shaderFailed = true; };
     R.autoClear = false;
     R.setClearColor(0, 0);
@@ -797,8 +806,9 @@ function mount(THREE, host) {
             const next = build(THREE, W, H, unit, meadowAt(m, W, H));
             unitPx = unit;
             if (m) {
-                hostX = host.getBoundingClientRect().left - m.left + W / 2;
-                try { land.resize(m, field, unit, min(devicePixelRatio || 1, 2)); } catch (e) { /* the scenery is a nicety */ }
+                const box = host.getBoundingClientRect();
+                hostX = box.left - m.left + W / 2;
+                try { land.resize(m, field, unit, min(devicePixelRatio || 1, 2), box.bottom - m.top); } catch (e) { /* the scenery is a nicety */ }
             }
             model?.geo.dispose(); model?.dg.dispose();
             model = next;
