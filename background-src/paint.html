@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<!--
+  Paints the homepage sky and meadow as an impressionist oil painting.
+
+  Open this file in a browser to see the painting and adjust it (seed, stroke
+  length and width, impasto), then save it with the buttons. Or render both
+  sizes straight into assets/ with:
+
+      node background-src/paint.mjs
+
+  How it works: every stroke is a long ribbon of bristles traced along a flow
+  field (sky strokes ride long horizontal swells and wrap around the clouds,
+  grass strokes sweep up and lean with the wind). Strokes go down in layers,
+  like a painter working: a thin block-in, broad strokes that cover the
+  canvas, narrower strokes over them, then a few accents of broken colour.
+  Each bristle carries one of the two colours loaded on the brush, so a
+  stroke is streaked rather than flat. A second canvas records how thick the
+  paint is (bristle ridges, paint pushed up at the edges, the newest stroke
+  on top) and that relief is lit from the sun's side at the end.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sky painter</title>
+<style>
+    body { margin: 0; background: #222; color: #eee; font: 13px/1.4 system-ui, sans-serif; }
+    canvas { display: block; max-width: 100%; height: auto; }
+    .panel { position: fixed; top: 10px; right: 10px; display: grid; gap: 6px; width: 220px; padding: 12px; background: rgba(20, 20, 20, .85); border-radius: 8px; }
+    .panel label { display: grid; grid-template-columns: 1fr 70px; align-items: center; gap: 6px; }
+    .panel input, .panel select, .panel button { font: inherit; }
+    .panel input[type=range] { grid-column: 1 / -1; }
+    body.render .panel { display: none; }
+</style>
+</head>
+<body>
+<canvas id="out"></canvas>
+<div class="panel">
+    <label>Layout <select id="layout"><option value="wide">wide 2560x1600</option><option value="tall">tall 1200x2400</option></select></label>
+    <label>Seed <input id="seed" type="number" value="20261110"></label>
+    <label>Stroke length <span id="lengthV"></span><input id="length" type="range" min="0.5" max="2" step="0.05" value="1"></label>
+    <label>Stroke width <span id="widthV"></span><input id="width" type="range" min="0.5" max="2" step="0.05" value="1"></label>
+    <label>Impasto <span id="impastoV"></span><input id="impasto" type="range" min="0" max="2" step="0.05" value="1"></label>
+    <button id="go">Repaint</button>
+    <button id="save">Save WebP</button>
+</div>
+<script>
+'use strict';
+
+const LAYOUTS = {
+    wide: { w: 2560, h: 1600, unit: 1.75, horizon: 0.84, sun: [0.27, 0.13, 0.07],
+            clouds: [[0.75, 0.36, 0.30, 0.15, 14], [0.43, 0.65, 0.25, 0.08, 10]] },
+    tall: { w: 1200, h: 2400, unit: 2.6, horizon: 0.86, sun: [0.30, 0.10, 0.13],
+            clouds: [[0.74, 0.47, 0.62, 0.085, 11]] },
+};
+
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+const P = {
+    skyTop: hex('#5a8bcc'), skyMid: hex('#89b3df'), skyLow: hex('#c2d7e9'), haze: hex('#ece2cf'),
+    glow: hex('#fbf3d8'), cloud: hex('#f7f2e8'), cloudShade: hex('#b4b8d6'),
+    trees: hex('#7a9893'), treesShade: hex('#587783'),
+    fieldFar: hex('#aab97f'), fieldMid: hex('#7ea252'), fieldNear: hex('#557f3f'),
+    grassShade: hex('#3b6347'), grassLight: hex('#cdc874'),
+};
+const SKY_ACCENTS = ['#a7a6d6', '#e4c7cf', '#f3e7cb', '#a6cfd2', '#7a9fd8'].map(hex);
+const GRASS_ACCENTS = ['#d8cb78', '#93b15c', '#6b8e86', '#a6b86c', '#c4ad78'].map(hex);
+
+// ---- seeded randomness and noise ----
+function mulberry32(a) {
+    return () => {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+}
+function makeNoise(seed) {
+    const hash = (x, y) => {
+        let h = Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(seed, 2147483647) | 0;
+        h = Math.imul(h ^ h >>> 13, 1274126177);
+        return ((h ^ h >>> 16) >>> 0) / 4294967296;
+    };
+    const s = t => t * t * (3 - 2 * t);
+    const n = (x, y) => {
+        const ix = Math.floor(x), iy = Math.floor(y), fx = s(x - ix), fy = s(y - iy);
+        const a = hash(ix, iy), b = hash(ix + 1, iy), c = hash(ix, iy + 1), d = hash(ix + 1, iy + 1);
+        return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+    };
+    return (x, y, oct = 3) => {
+        let sum = 0, amp = 1, norm = 0, f = 1;
+        for (let i = 0; i < oct; i++) { sum += amp * n(x * f + i * 17.3, y * f - i * 9.1); norm += amp; amp *= 0.5; f *= 2.03; }
+        return sum / norm;
+    };
+}
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
+
+function paint(canvas, layoutName, opts) {
+    const L = LAYOUTS[layoutName];
+    const { w: W, h: H, unit: U } = L;
+    const lenK = opts.length, widK = opts.width;
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    const hc = document.createElement('canvas');
+    hc.width = W; hc.height = H;
+    const hctx = hc.getContext('2d');
+    hctx.fillStyle = '#000'; hctx.fillRect(0, 0, W, H);
+
+    const rand = mulberry32(opts.seed);
+    const R = (a, b) => a + (b - a) * rand();
+    const gauss = () => { let s = 0; for (let i = 0; i < 4; i++) s += rand(); return (s - 2) / 0.577; };
+    const noise = makeNoise(opts.seed);
+    const HZ = L.horizon * H;
+    const [sx, sy, sr] = L.sun;
+
+    // ---- the picture the strokes are trying to paint ----
+    const treeTop = new Float32Array(W);
+    for (let x = 0; x < W; x++) {
+        const X = x / U;
+        treeTop[x] = HZ - (12 + 22 * noise(X / 40, 3.3, 3) + 24 * noise(X / 190, 7.7, 2)) * U;
+    }
+    const tt = x => treeTop[clamp(x | 0, 0, W - 1)];
+    const region = (x, y) => y < tt(x) ? 0 : y < HZ + 2 * U ? 1 : 2; // sky, trees, field
+
+    const puffs = [];
+    for (const [cx, cy, cw, ch, n] of L.clouds) {
+        for (let i = 0; i < n; i++) {
+            const px = cx + gauss() * cw * 0.27;
+            const lift = Math.exp(-(((px - cx) / (cw * 0.35)) ** 2));
+            const py = cy - Math.abs(gauss()) * ch * 0.25 * (0.4 + lift);
+            const rx = cw * R(0.12, 0.26);
+            const ry = Math.min(rx * (W / H) * R(0.5, 0.8), ch * 0.8);
+            puffs.push({ px, py, rx, ry, base: cy + ch * 0.05, floor: cy + ch * 0.32 });
+        }
+    }
+    function cloudAt(x, y) {
+        const u = x / W, v = y / H;
+        const lumpy = (noise(x / U / 26, y / U / 26, 2) - 0.5) * 0.5;
+        let c = 0, sh = 0;
+        for (const p of puffs) {
+            const d = Math.hypot((u - p.px) / p.rx, (v - p.py) / p.ry) + lumpy;
+            if (d > 1.1) continue;
+            const b = smooth(1.05, 0.5, d) * smooth(p.floor, p.base, v);
+            if (b > c) c = b;
+            const s = b * smooth(p.py - p.ry * 0.1, p.py + p.ry * 0.9, v);
+            if (s > sh) sh = s;
+        }
+        return [c, sh];
+    }
+    function target(x, y) {
+        x = clamp(x, 0, W - 1); y = clamp(y, 0, H - 1);
+        const reg = region(x, y);
+        const X = x / U, Y = y / U;
+        if (reg === 0) {
+            const t = clamp(y / HZ, 0, 1);
+            let c = mix(P.skyTop, P.skyMid, smooth(0, 0.6, t));
+            c = mix(c, P.skyLow, smooth(0.5, 1, t));
+            c = mix(c, P.haze, 0.5 * smooth(0.8, 1, t));
+            c = mix(c, [0.48, 0.6, 0.86], 0.18 * smooth(0.55, 0.8, noise(X / 300, Y / 220, 2)));
+            const sd = Math.hypot(x - sx * W, y - sy * H) / (sr * W);
+            c = mix(c, P.glow, 0.95 * smooth(3.4, 0.3, sd) ** 1.6);
+            const [cl, sh] = cloudAt(x, y);
+            if (cl > 0) {
+                let cc = mix(P.cloud, P.cloudShade, clamp(sh * 0.9, 0, 1));
+                cc = mix(cc, P.glow, 0.3 * smooth(6, 2, sd));
+                c = mix(c, cc, cl * 0.96);
+            }
+            return c;
+        }
+        if (reg === 1) return mix(P.trees, P.treesShade, smooth(0.25, 1, (y - tt(x)) / (HZ - tt(x) + 1)) * (0.7 + 0.5 * noise(X / 30, Y / 30, 2)));
+        const ft = clamp((y - HZ) / (H - HZ), 0, 1);
+        let c = mix(P.fieldFar, P.fieldMid, smooth(0, 0.45, ft));
+        c = mix(c, P.fieldNear, smooth(0.35, 1, ft));
+        c = mix(c, P.grassLight, 1.3 * clamp(noise(X / 110, Y / 60, 2) - 0.52, 0, 1) * (1 - ft * 0.4));
+        c = mix(c, P.grassShade, 1.1 * clamp(0.46 - noise(X / 80 + 40, Y / 50, 2), 0, 1) * ft);
+        c = mix(c, P.fieldFar, 0.45 * smooth(0.45, 0, x / W) * ft); // lighter under the links
+        return c;
+    }
+
+    // ---- which way the brush travels ----
+    function angleAt(x, y, reg) {
+        const X = x / U, Y = y / U;
+        if (reg === 0) {
+            let a = -0.06 + (noise(X / 520, Y / 300, 2) - 0.5) * 0.75 + 0.08 * Math.sin(X / 230 + 3 * noise(X / 300, Y / 300, 1));
+            const e = 5 * U;
+            const gx = cloudAt(x + e, y)[0] - cloudAt(x - e, y)[0];
+            const gy = cloudAt(x, y + e)[0] - cloudAt(x, y - e)[0];
+            const g = Math.hypot(gx, gy);
+            const inside = cloudAt(x, y)[0];
+            if (g > 0.02 && inside > 0.15) {
+                let tng = Math.atan2(gx, -gy);
+                if (Math.cos(tng) < 0) tng += Math.PI;
+                const k = clamp(g * 1.6, 0, 0.5) * smooth(0.15, 0.5, inside);
+                a = Math.atan2(Math.sin(a) * (1 - k) + Math.sin(tng) * k, Math.cos(a) * (1 - k) + Math.cos(tng) * k);
+            }
+            return a;
+        }
+        if (reg === 1) return -Math.PI / 2 + (noise(X / 14, Y / 14, 1) - 0.5) * 3.2;
+        const ft = clamp((y - HZ) / (H - HZ), 0, 1);
+        const up = -Math.PI / 2 + 0.18 + (noise(X / 90, Y / 110, 2) - 0.5) * 1.1;
+        const flat = -0.03 + (noise(X / 200, Y / 40, 1) - 0.5) * 0.25;
+        const k = smooth(0.12, 0.32, ft);
+        return Math.atan2(Math.sin(flat) * (1 - k) + Math.sin(up) * k, Math.cos(flat) * (1 - k) + Math.cos(up) * k);
+    }
+
+    // ---- block-in: a thin, even coat so nothing ever shows through ----
+    {
+        const s = 8;
+        const bw = Math.ceil(W / s), bh = Math.ceil(H / s);
+        const small = document.createElement('canvas');
+        small.width = bw; small.height = bh;
+        const sctx = small.getContext('2d');
+        const img = sctx.createImageData(bw, bh);
+        for (let j = 0; j < bh; j++) for (let i = 0; i < bw; i++) {
+            const c = target(i * s + s / 2, j * s + s / 2), k = (j * bw + i) * 4;
+            img.data[k] = c[0] * 255; img.data[k + 1] = c[1] * 255; img.data[k + 2] = c[2] * 255; img.data[k + 3] = 255;
+        }
+        sctx.putImageData(img, 0, 0);
+        ctx.imageSmoothingQuality = 'high';
+        ctx.filter = `blur(${4 * U}px)`;
+        ctx.drawImage(small, 0, 0, W, H);
+        ctx.filter = 'none';
+    }
+
+    const css = c => `rgb(${(clamp(c[0], 0, 1) * 255) | 0},${(clamp(c[1], 0, 1) * 255) | 0},${(clamp(c[2], 0, 1) * 255) | 0})`;
+    const jitter = (c, a) => { const v = gauss() * a; return [c[0] * (1 + v + gauss() * a * 0.4), c[1] * (1 + v + gauss() * a * 0.4), c[2] * (1 + v + gauss() * a * 0.4)]; };
+
+    // ---- one stroke: trace the path, then drag a brush of bristles along it ----
+    function stroke(x, y, length, width, reg, s) {
+        const step = 2 * U;
+        const pts = [[x, y]];
+        let a = angleAt(x, y, reg) + gauss() * (s.spread || 0.05);
+        const n = Math.max(2, Math.round(length / step));
+        for (let i = 0; i < n; i++) {
+            const want = angleAt(x, y, reg) + (s.spread || 0) * 0.3 * gauss();
+            a += clamp(wrap(want - a), -0.06, 0.06);
+            x += Math.cos(a) * step; y += Math.sin(a) * step;
+            if (x < -width || x > W + width || y < -width || y > H + width) break;
+            const r = region(x, y);
+            if (s.stayIn !== false && r !== reg && !(reg === 2 && r === 1)) break;
+            pts.push([x, y]);
+        }
+        if (pts.length < 3) return;
+        // normals along the path
+        const nrm = pts.map((p, i) => {
+            const q = pts[Math.min(i + 1, pts.length - 1)], o = pts[Math.max(i - 1, 0)];
+            const dx = q[0] - o[0], dy = q[1] - o[1], d = Math.hypot(dx, dy) || 1;
+            return [-dy / d, dx / d];
+        });
+        // the paint on the brush: the colour where it starts, plus a neighbour's
+        const mid = pts[pts.length >> 1];
+        let c1 = jitter(target(pts[0][0] + gauss() * 3 * U, pts[0][1] + gauss() * 3 * U), s.jitter);
+        let c2 = jitter(target(mid[0] + gauss() * 10 * U, mid[1] + gauss() * 10 * U), s.jitter);
+        if (s.shade && rand() < s.shade) c1 = mix(c1, P.grassShade, R(0.25, 0.5));
+        if (rand() < s.accent) c2 = mix(c2, s.accents[(rand() * s.accents.length) | 0], R(0.2, 0.4));
+        if (rand() < s.accent * 0.35) c1 = mix(c1, s.accents[(rand() * s.accents.length) | 0], R(0.15, 0.3));
+
+        const nb = clamp(Math.round(width / (1.4 * U)), 3, 30);
+        const lw = width / nb * 1.75;
+        const total = pts.length;
+        const loadSeed = rand() * 100;
+        ctx.lineCap = hctx.lineCap = 'round';
+        ctx.lineJoin = hctx.lineJoin = 'round';
+        for (let b = 0; b < nb; b++) {
+            const off = ((b + 0.5) / nb - 0.5) * width + gauss() * 0.15 * width / nb;
+            const edge = Math.abs(off) / (width / 2);
+            const taper = s.taper || 0;
+            // Bristles near the edge touch down later and lift sooner; a few run dry early.
+            const start = Math.floor(total * (0.02 + 0.14 * edge * edge * (0.5 + rand())));
+            const end = Math.ceil(total * (1 - (s.dry || 0.12) * rand() ** 2 - 0.16 * edge * edge * (0.5 + rand())));
+            if (end - start < 2) continue;
+            const t = noise(loadSeed, b * 0.45, 1);
+            const c = mix(c1, c2, smooth(0.35, 0.65, t));
+            const v = 1 + gauss() * 0.028;
+            ctx.strokeStyle = css([c[0] * v, c[1] * v, c[2] * v]);
+            ctx.globalAlpha = 0.92 - 0.25 * edge * edge;
+            const ridge = 0.55 + 0.14 * rand() + 0.2 * edge * edge;
+            const g = (clamp(ridge * (s.thick || 1), 0, 1) * 255) | 0;
+            hctx.strokeStyle = `rgb(${g},${g},${g})`;
+            hctx.globalAlpha = 0.9;
+            ctx.lineWidth = hctx.lineWidth = lw * (1 + 0.2 * gauss());
+            for (const k of [ctx, hctx]) {
+                k.beginPath();
+                for (let i = start; i < end; i++) {
+                    const tp = i / total;
+                    const o = off * (1 - taper * tp * tp);
+                    const px = pts[i][0] + nrm[i][0] * o, py = pts[i][1] + nrm[i][1] * o;
+                    i === start ? k.moveTo(px, py) : k.lineTo(px, py);
+                }
+                k.stroke();
+            }
+        }
+        ctx.globalAlpha = hctx.globalAlpha = 1;
+    }
+
+    // Spread strokes evenly: one per cell of a jittered grid sized from the coverage wanted.
+    function layer(reg, s) {
+        const y0 = reg === 0 ? 0 : reg === 1 ? Math.min(...treeTop) : HZ;
+        const y1 = reg === 0 ? HZ : reg === 1 ? HZ + 2 * U : H;
+        const area = W * (y1 - y0);
+        const meanL = (s.len[0] + s.len[1]) / 2 * U * lenK, meanW = (s.wid[0] + s.wid[1]) / 2 * U * widK;
+        const count = Math.ceil(area * s.cover / (meanL * meanW));
+        const cell = Math.sqrt(area / count);
+        const jobs = [];
+        for (let y = y0; y < y1; y += cell) for (let x = 0; x < W; x += cell) {
+            const px = x + rand() * cell, py = y + rand() * cell;
+            if (region(px, py) !== reg) continue;
+            jobs.push([px, py]);
+        }
+        // Painters don't work in raster order.
+        for (let i = jobs.length - 1; i > 0; i--) { const j = (rand() * (i + 1)) | 0; [jobs[i], jobs[j]] = [jobs[j], jobs[i]]; }
+        for (const [px, py] of jobs) {
+            let len = R(s.len[0], s.len[1]) * U * lenK, wid = R(s.wid[0], s.wid[1]) * U * widK;
+            if (s.grow) { const ft = clamp((py - HZ) / (H - HZ), 0, 1); len *= 0.45 + ft * s.grow; wid *= 0.7 + ft * 0.5; }
+            // Sky strokes start back along the path so they're centred on their cell.
+            let sxp = px, syp = py;
+            if (reg === 0) { const a = angleAt(px, py, 0); sxp -= Math.cos(a) * len / 2; syp -= Math.sin(a) * len / 2; }
+            if (region(sxp, syp) !== reg) { sxp = px; syp = py; }
+            stroke(sxp, syp, len, wid, reg, s);
+        }
+    }
+
+    const sky = { accents: SKY_ACCENTS };
+    layer(0, { ...sky, len: [150, 300], wid: [18, 28], cover: 1.5, jitter: 0.018, accent: 0.12, dry: 0.15, spread: 0.08 });
+    layer(0, { ...sky, len: [80, 170], wid: [10, 15], cover: 1.3, jitter: 0.025, accent: 0.3, dry: 0.2, spread: 0.12 });
+    layer(0, { ...sky, len: [40, 95], wid: [5, 8], cover: 0.3, jitter: 0.025, accent: 0.4, dry: 0.3, spread: 0.18 });
+    const tr = { accents: GRASS_ACCENTS, spread: 0.6 };
+    layer(1, { ...tr, len: [16, 40], wid: [8, 13], cover: 2.2, jitter: 0.04, accent: 0.08, taper: 0.6 });
+    layer(1, { ...tr, len: [10, 24], wid: [4, 7], cover: 0.9, jitter: 0.04, accent: 0.1, taper: 0.7 });
+    const gr = { accents: GRASS_ACCENTS };
+    layer(2, { ...gr, len: [60, 140], wid: [12, 20], cover: 1.6, jitter: 0.03, accent: 0.15, grow: 1.2, taper: 0.3 });
+    layer(2, { ...gr, len: [40, 120], wid: [5, 9], cover: 1.4, jitter: 0.04, accent: 0.3, grow: 1.4, taper: 0.6, shade: 0.25, dry: 0.2 });
+    layer(2, { ...gr, len: [25, 70], wid: [3, 5], cover: 0.45, jitter: 0.05, accent: 0.6, grow: 1.5, taper: 0.8, dry: 0.3 });
+
+    // ---- light the paint from the upper left ----
+    const imp = opts.impasto;
+    if (imp > 0) {
+        const hb = document.createElement('canvas');
+        hb.width = W; hb.height = H;
+        const hbx = hb.getContext('2d');
+        hbx.filter = `blur(${1.1 * U}px)`;
+        hbx.drawImage(hc, 0, 0);
+        const hd = hbx.getImageData(0, 0, W, H).data;
+        const id = ctx.getImageData(0, 0, W, H);
+        const d = id.data;
+        const lx = -0.55, ly = -0.6, lz = 0.58, ll = Math.hypot(lx, ly, lz);
+        const s = 0.011 / U * imp;
+        const hx = lx / ll, hy = ly / ll, hz = lz / ll + 1, hl = Math.hypot(hx, hy, hz);
+        // Canvas weave, faint, felt only through the relief.
+        const weave = (x, y) => {
+            const p = 3.2 * U, cx = Math.floor(x / p), cy = Math.floor(y / p);
+            return (cx + cy) & 1 ? Math.sin(x / p * Math.PI) ** 2 : Math.sin(y / p * Math.PI) ** 2;
+        };
+        for (let y = 1; y < H - 1; y++) {
+            for (let x = 1; x < W - 1; x++) {
+                const k = (y * W + x) * 4;
+                const gx = (hd[k + 4] - hd[k - 4]) + 10 * (weave(x + 1, y) - weave(x - 1, y));
+                const gy = (hd[k + W * 4] - hd[k - W * 4]) + 10 * (weave(x, y + 1) - weave(x, y - 1));
+                const nx = -gx * s, ny = -gy * s, nl = Math.sqrt(nx * nx + ny * ny + 1);
+                const diff = (nx * lx + ny * ly + lz) / (nl * ll);
+                const shade = 1 + 0.45 * (diff - lz / ll);
+                const spec = Math.pow(clamp((nx * hx + ny * hy + hz) / (nl * hl), 0, 1), 36) * 12 * imp;
+                d[k] = d[k] * shade + spec; d[k + 1] = d[k + 1] * shade + spec; d[k + 2] = d[k + 2] * shade + spec;
+            }
+        }
+        ctx.putImageData(id, 0, 0);
+    }
+}
+
+// ---- page wiring ----
+const q = new URLSearchParams(location.search);
+const $ = id => document.getElementById(id);
+if (q.has('render')) document.body.classList.add('render');
+for (const k of ['layout', 'seed', 'length', 'width', 'impasto']) if (q.has(k)) $(k).value = q.get(k);
+const show = () => { for (const k of ['length', 'width', 'impasto']) $(k + 'V').textContent = (+$(k).value).toFixed(2); };
+function run() {
+    show();
+    const t = performance.now();
+    paint($('out'), $('layout').value, { seed: +$('seed').value, length: +$('length').value, width: +$('width').value, impasto: +$('impasto').value });
+    window.paintMs = Math.round(performance.now() - t);
+    window.painted = true;
+}
+for (const k of ['length', 'width', 'impasto']) $(k).addEventListener('input', show);
+$('go').onclick = () => { window.painted = false; setTimeout(run, 10); };
+$('save').onclick = () => {
+    const a = document.createElement('a');
+    a.download = `sky-${$('layout').value}.webp`;
+    a.href = $('out').toDataURL('image/webp', 0.86);
+    a.click();
+};
+run();
+</script>
+</body>
+</html>
