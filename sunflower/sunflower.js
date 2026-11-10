@@ -1,5 +1,5 @@
 // The homepage sunflower: a procedural 3D model, repainted every frame as oil dabs so it
-// sits in the same hand as the sky (background-src/paint.py).
+// sits in the same hand as the sky (background-src/paint.html).
 //
 // How a frame is made:
 //   1. The shaded model is drawn to an offscreen target (colour + depth). Wind is applied
@@ -8,9 +8,9 @@
 //      then a few thousand brush dabs. Every dab is pinned to a point on the model and
 //      goes through the same wind as the mesh, so the brushwork rides the flower and
 //      doesn't boil. A dab takes the shaded colour at its anchor, plus broken colour.
-//   3. The height buffer is lit from the upper left with a faint sheen, like paint.py
+//   3. The height buffer is lit from the upper left with a faint sheen, like paint.html
 //      lights the background, and canvas weave shows where paint is thin.
-// Dab sizes are in the painting's own "units" (paint.py's `unit`), so they match the
+// Dab sizes are in the painting's own "units" (paint.html's `unit`), so they match the
 // background's dabs at any viewport size.
 
 const TAU = Math.PI * 2;
@@ -114,7 +114,7 @@ in vec3 aP; out vec2 vUv;
 void main() { vUv = aP.xy * .5 + .5; gl_Position = vec4(aP.xy, 0., 1.); }`;
 
 // Underpainting: the shaded model, pulled in from its outline so that only dabs ever
-// draw the silhouette, laid thin and a little warm like paint.py's ground.
+// draw the silhouette, laid thin and a little warm like paint.html's ground.
 const BASE_FS = /* glsl */`
 precision highp float;
 uniform sampler2D uT; uniform vec2 uE;
@@ -179,7 +179,7 @@ void main() {
     vB = vB * (1. + h3(s + 16.) * .05) + (h1(s + 19.) - .5) * .05;
 }`;
 
-// One dab, the same recipe as dab() in paint.py: round start, ragged dry end, two colours
+// One dab, the same recipe as dab() in paint.html: round start, ragged dry end, two colours
 // dragged into each other, bristle ridges and paint pushed up along the sides.
 const DAB_FS = /* glsl */`
 precision highp float;
@@ -208,7 +208,7 @@ void main() {
     o1 = vec4(thick * alpha, 0., 0., alpha * .7);
 }`;
 
-// Light the paint relief from the upper left, as paint.py does at the end.
+// Light the paint relief from the upper left, as paint.html does at the end.
 const LIGHT_FS = /* glsl */`
 precision highp float;
 uniform sampler2D uC, uH; uniform vec2 uR; uniform float uU;
@@ -471,7 +471,7 @@ function build(THREE, W, H, unit, meadow) {
     return { geo, dg, mats, wind, dropU, pose, view: new THREE.Vector4(2 / wW, 2 / wH, 0, -1), hide: HIDE };
 }
 
-// Brush streaks, as in paint.py's Canvas.streak: noise smeared far along the stroke and
+// Brush streaks, as in paint.html's Canvas.streak: noise smeared far along the stroke and
 // barely across it. 1 texel per unit along, 2 per unit across.
 function streaks(THREE) {
     const W = 512, H = 256, n = W * H, r = rng(7);
@@ -611,7 +611,7 @@ function mount(THREE, host) {
     };
 
     // The page's own background painting, read back so the grass strokes at the foot of the
-    // stem can take their colours from the meadow they stand in (paint.py's pick()).
+    // stem can take their colours from the meadow they stand in (paint.html's pick()).
     let field = null, fieldUrl = '';
     const readField = () => {
         const url = /url\(["']?(.+?)["']?\)/.exec(getComputedStyle(document.body).backgroundImage)?.[1];
@@ -654,7 +654,7 @@ function mount(THREE, host) {
         const key = [W, H, vw, vh, dpr, fieldUrl].join();
         if (W < 8 || H < 8 || key === sized) return;
         sized = key;
-        // CSS px per painting unit: how big paint.py's dabs come out on this screen.
+        // CSS px per painting unit: how big paint.html's dabs come out on this screen.
         const unit = matchMedia('(max-aspect-ratio: 4/5)').matches ? max(vw / 1200, vh / 2400) * 2.6 : max(vw / 2560, vh / 1600) * 1.75;
         try {
             const next = build(THREE, W, H, unit, meadowAt(W, H));
