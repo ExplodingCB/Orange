@@ -8,7 +8,7 @@
     --paper: #faf7ee;
     --sun: #9a4a0b;
     --halo: 0 0 10px rgba(250, 247, 238, .35);
-    --text: 'Cormorant Garamond', Georgia, serif;
+    --text: 'Inter', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
     --display: 'Fraunces', Georgia, serif;
     --gutter: clamp(20px, 4.5vw, 72px);
 }
@@ -22,8 +22,8 @@ body {
     min-height: 100svh;
     color: var(--ink);
     font-family: var(--text);
-    font-weight: 700;
-    font-size: 1.25rem;
+    font-weight: 600;
+    font-size: 1rem;
     line-height: 1.45;
     -webkit-font-smoothing: antialiased;
     background: #8fb6db url("assets/sky-wide.webp?v=20261110-wind") center 75% / cover no-repeat;
@@ -46,8 +46,18 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
     overflow: hidden;
 }
 
+/* Safari on iOS can only fill the areas behind its status bar and toolbar with one flat colour,
+   which it takes from a fixed element touching that edge. These strips give it the painting's
+   sky for the top and its grass for the bottom. Other browsers never show them. */
+.edge { display: none; position: fixed; left: 0; right: 0; height: 6px; z-index: 3; pointer-events: none; }
+@supports (-webkit-touch-callout: none) {
+    .edge { display: block; }
+    .edge-top { top: 0; background: #7ba0d0; }
+    .edge-bottom { bottom: 0; background: #638848; }
+}
+
 /* The clouds are their own layer over the sky so sunflower.js can let them drift, and the meadow
-   canvas is that script's moving copy of the grass. Without the script both simply sit still. */
+   canvas is that script's layer of moving grass blades. Without the script both simply sit still. */
 .clouds {
     position: absolute;
     inset: 0;
@@ -67,7 +77,7 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
 .nav { display: flex; gap: clamp(18px, 2.4vw, 34px); }
 .nav a {
     padding-block: 10px;
-    font-size: 1.5rem;   /* the same setting as the lines under the name */
+    font-size: 1.125rem;   /* the same setting as the lines under the name */
     text-shadow: var(--halo);
 }
 
@@ -84,10 +94,10 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
     color: #1d2f66;
     filter: url(#paint-name);
 }
-.roles { list-style: none; margin: clamp(18px, 3.4vh, 34px) 0 0; padding: 0; font-size: 1.5rem; }
+.roles { list-style: none; margin: clamp(18px, 3.4vh, 34px) 0 0; padding: 0; font-size: 1.125rem; }
 .roles li + li { margin-top: .15rem; }
 .roles a { display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; text-shadow: var(--halo); }
-.at { color: var(--ink-soft); font-weight: 600; }
+.at { color: var(--ink-soft); font-weight: 500; }
 .brand {
     flex: none;
     width: 1.15em;
@@ -105,13 +115,13 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
     gap: .35rem;
     margin-top: .45rem;
     padding-block: .5rem;
-    font-size: 1.3125rem;
+    font-size: 1rem;
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 5px;
     text-shadow: var(--halo);
 }
-.resume-format { color: var(--ink-soft); font-size: 1.0625rem; font-weight: 600; }
+.resume-format { color: var(--ink-soft); font-size: .8125rem; font-weight: 500; }
 
 .links { position: relative; z-index: 2; display: flex; gap: 6px; margin-left: -12px; }
 .links a { position: relative; display: inline-grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; }
@@ -155,11 +165,11 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
 }
 
 @media (max-width: 700px) {
-    body { font-size: 1.125rem; }
-    .nav a { font-size: 1.3125rem; }
+    body { font-size: .9375rem; }
+    .nav a { font-size: 1rem; }
     .intro { padding-top: clamp(20px, 6vh, 56px); }
     .name { font-size: clamp(3rem, 14vw, 4.5rem); }
-    .roles { font-size: 1.3125rem; }
+    .roles { font-size: 1rem; }
     .sunflower { right: -2vw; bottom: 1vh; width: 50vw; height: min(100vw, 54vh); }
 }
 @media (max-height: 560px) and (min-aspect-ratio: 4/5) {

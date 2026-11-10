@@ -513,23 +513,40 @@ function streaks(THREE) {
 
 // ---------------------------------------------------------------- meadow and clouds
 
-// The meadow is redrawn from the page's own background with a sideways lean that follows the
-// same wind as the flower: the same force, delayed by distance, so a gust is seen crossing
-// the field and reaching the stem. The lean grows from nothing at the horizon, so the strip
-// meets the still painting above it without a seam.
-const MEADOW_FS = `#version 300 es
+// Grass that moves: a layer of painted blades over the meadow, each rooted where it stands and
+// bending from its base like the stem does. They take their colours from the painting under
+// them, and feel the same wind as the flower, delayed by distance, so a gust is seen crossing
+// the field and reaching the stem.
+const BLADE_VS = `#version 300 es
 precision highp float;
-uniform sampler2D uT; uniform vec2 uS; uniform vec3 uP, uG[3];   // uP: time, flower x, px per unit
-in vec2 v; out vec4 o;
+layout(location = 0) in vec4 aR;   // root x, y (px from the layer's top left), length, half width
+layout(location = 1) in vec3 aB;   // lean at rest, phase, depth in the field 0..1
+layout(location = 2) in vec3 aC;
+uniform vec2 uS; uniform vec3 uP, uG[3];   // uP: time, flower x, px per unit
+out vec3 c; out vec2 q;
 void main() {
-    float x = v.x * uS.x, ft = 1. - v.y;
-    float tl = uP.x - (x - uP.y) / (420. * uP.z) + .4 * sin(x * .011 / uP.z + ft * 4.);
+    float t = float(gl_VertexID >> 1) / 7., sd = float(gl_VertexID & 1) * 2. - 1.;
+    float tl = uP.x - (aR.x - uP.y) / (420. * uP.z) + .4 * sin(aR.x * .011 / uP.z + aB.z * 4.);
     float g = 0.;
-    for (int i = 0; i < 3; i++) { float q = (tl - uG[i].x) / uG[i].z; if (q > 0.) g += uG[i].y * q * exp(1. - q); }
+    for (int i = 0; i < 3; i++) { float e = (tl - uG[i].x) / uG[i].z; if (e > 0.) g += uG[i].y * e * exp(1. - e); }
     float f = .021 + .042 * (.5 * sin(.53 * tl + 1.3) + .3 * sin(.91 * tl + 4.1) + .2 * sin(1.67 * tl + .5)) + .1 * g;
-    float rip = sin(x * .07 / uP.z - tl * 2.6 + ft * 9.) * (.25 + g);
-    float dx = (f * 110. + rip * 1.6) * pow(smoothstep(.06, 1., ft), 1.2) * uP.z;
-    o = vec4(texture(uT, vec2(v.x - dx / uS.x, v.y)).rgb, 1.);
+    // The root stays put and the blade curls over more toward its tip.
+    float k = f * 4.6 + sin(tl * (2.2 + aB.y) + aB.y * 40.) * .07 * (.4 + 1.5 * g);
+    float a = aB.x + k * t;
+    vec2 p = abs(k * t) < .002 ? t * vec2(sin(aB.x), -cos(aB.x)) : vec2(cos(aB.x) - cos(a), sin(aB.x) - sin(a)) / k;
+    float w = aR.w * (1. - .25 * t * t) * pow(max(1. - t, 0.), .55) * min(1., t * 9. + .35);
+    vec2 pos = aR.xy + p * aR.z + vec2(cos(a), sin(a)) * sd * (w + 1.);
+    q = vec2(sd * (w + 1.), w);
+    c = aC;
+    gl_Position = vec4(pos.x / uS.x * 2. - 1., 1. - pos.y / uS.y * 2., 0., 1.);
+}`;
+const BLADE_FS = `#version 300 es
+precision highp float;
+in vec3 c; in vec2 q; out vec4 o;
+void main() {
+    float al = clamp(q.y + .5 - abs(q.x), 0., 1.) * .96;
+    float s = q.x / max(q.y, .5);
+    o = vec4(c * (1. + .05 * s + .04 * smoothstep(.5, 0., abs(s + .2))) * al, al);   // a lit side and a streak
 }`;
 
 function scenery(home) {
@@ -538,47 +555,60 @@ function scenery(home) {
     cv.className = 'meadow';
     cv.setAttribute('aria-hidden', 'true');
     cv.style.display = 'none';
-    const gl = cv.getContext('webgl2', { alpha: false, antialias: false, depth: false, stencil: false });
-    let ok = !!gl, ready = false, tile = 0, cx = 0, uni = null, size = [1, 1], unit = 1, tex = null, prog = null;
+    const gl = cv.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: true, depth: false, stencil: false });
+    let ok = !!gl, count = 0, tile = 0, cx = 0, uni = null, size = [1, 1], unit = 1, buf = null;
     if (ok) {
         const sh = (type, src) => { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return x; };
-        prog = gl.createProgram();
-        gl.attachShader(prog, sh(gl.VERTEX_SHADER, '#version 300 es\nout vec2 v; void main() { v = vec2(gl_VertexID & 1, gl_VertexID >> 1) * 2.; gl_Position = vec4(v * 2. - 1., 0., 1.); }'));
-        gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, MEADOW_FS));
+        const prog = gl.createProgram();
+        gl.attachShader(prog, sh(gl.VERTEX_SHADER, BLADE_VS));
+        gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, BLADE_FS));
         gl.linkProgram(prog);
         ok = gl.getProgramParameter(prog, gl.LINK_STATUS);
         if (ok) {
             gl.useProgram(prog);
             uni = { S: gl.getUniformLocation(prog, 'uS'), P: gl.getUniformLocation(prog, 'uP'), G: gl.getUniformLocation(prog, 'uG') };
-            tex = gl.createTexture();
+            buf = gl.createBuffer();
+            gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+            [[4, 0], [3, 16], [3, 28]].forEach(([n, off], i) => { gl.enableVertexAttribArray(i); gl.vertexAttribPointer(i, n, gl.FLOAT, false, 40, off); gl.vertexAttribDivisor(i, 1); });
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
             (clouds || home.firstChild).after(cv);
         }
     }
     return {
-        // m: how the background image sits on the page (scale, offsets, page size). img: that image.
-        resize(m, img, u, dpr) {
+        // m: how the background image sits on the page. field: that image and a small copy of its pixels.
+        resize(m, field, u, dpr) {
             unit = u;
             if (clouds) {   // widen the cloud layer by a tile each side, so it can slide and wrap
-                tile = img.naturalWidth * m.sc;
+                tile = field.iw * m.sc;
                 Object.assign(clouds.style, { left: -tile + 'px', right: 'auto', width: m.W + 2 * tile + 'px', backgroundSize: tile + 'px auto', backgroundPositionX: m.ox + tile + 'px' });
             }
             if (!ok) return;
-            const hz = (img.naturalWidth > img.naturalHeight ? .84 : .86) + .004;
-            const y0 = Math.floor((m.oy + hz * img.naturalHeight * m.sc) * dpr) / dpr, h = m.H - y0;
-            if (h < 4) { ready = false; cv.style.display = 'none'; return; }
-            const c = document.createElement('canvas'), g = c.getContext('2d');
-            c.width = cv.width = Math.ceil(m.W * dpr); c.height = cv.height = Math.ceil(h * dpr);
-            g.imageSmoothingQuality = 'high';
-            g.drawImage(img, -m.ox / m.sc, (y0 - m.oy) / m.sc, c.width / dpr / m.sc, c.height / dpr / m.sc, 0, 0, c.width, c.height);
-            gl.bindTexture(gl.TEXTURE_2D, tex);
-            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, c);
-            for (const k of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, k, gl.LINEAR);
-            for (const k of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T]) gl.texParameteri(gl.TEXTURE_2D, k, gl.CLAMP_TO_EDGE);
-            Object.assign(cv.style, { top: y0 + 'px', height: c.height / dpr + 'px', width: c.width / dpr + 'px' });
-            size = [c.width / dpr, c.height / dpr];
-            gl.viewport(0, 0, c.width, c.height);
-            ready = true;
+            const hz = m.oy + (field.iw > field.ih ? .84 : .86) * field.ih * m.sc;   // the horizon on the page
+            const top = max(0, Math.floor(hz - 30 * u)), h = m.H - top, deep = m.H - hz;
+            count = 0;
+            if (deep < 8) { cv.style.display = 'none'; return; }
+            cv.width = Math.ceil(m.W * dpr); cv.height = Math.ceil(h * dpr);
+            Object.assign(cv.style, { top: top + 'px', height: cv.height / dpr + 'px', width: cv.width / dpr + 'px' });
+            size = [cv.width / dpr, cv.height / dpr];
+            gl.viewport(0, 0, cv.width, cv.height);
+            const pick = (x, y) => {
+                const i = (clamp(round((y - m.oy) / m.sc / 4), 0, field.h - 1) * field.w + clamp(round((x - m.ox) / m.sc / 4), 0, field.w - 1)) * 4;
+                return [field.d[i] / 255, field.d[i + 1] / 255, field.d[i + 2] / 255];
+            };
+            // One blade per cell of a jittered grid, as paint.html lays its own, far ones first.
+            const r = rng(77), R = (a, b) => a + (b - a) * r(), blades = [];
+            const cell = sqrt(30 * 7.5 * .6 / 1.7) * u;
+            for (let y = hz + .14 * deep; y < m.H + 24 * u; y += cell) for (let x = -cell; x < m.W + cell; x += cell) {
+                const bx = x + r() * cell, by = y + r() * cell, ft = clamp((by - hz) / deep, 0, 1);
+                const len = R(24, 52) * (.5 + ft * .9) * u, hw = R(2.6, 4.6) * (.7 + .5 * ft) * u;
+                const lean = .16 + .5 * sin(bx * .009 / u + by * .02 / u) * sin(bx * .0031 / u + 1.7) + R(-.14, .14);
+                const c = pick(bx + R(-3, 3) * u, min(by, m.H - 1) - len * R(.2, .6)), v = 1 + R(-.06, .06) - (r() < .15 ? .1 : 0);
+                blades.push([bx, by - top, len, hw, lean, r(), ft, c[0] * v, c[1] * v, c[2] * v]);
+            }
+            blades.sort((a, b) => a[1] - b[1]);
+            count = blades.length;
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(blades.flat()), gl.STATIC_DRAW);
         },
         // t: wind time. gusts: [start, strength, length]. fx: the flower's x on the page. dt: seconds since the last frame.
         draw(t, gusts, fx, dt, speed) {
@@ -586,14 +616,16 @@ function scenery(home) {
                 cx = (cx + dt * speed * unit) % tile;
                 clouds.style.transform = `translate3d(${cx.toFixed(2)}px,0,0)`;
             }
-            if (!ok || !ready || gl.isContextLost()) return;
+            if (!ok || !count || gl.isContextLost()) return;
             const g = new Float32Array(9).fill(1);
             gusts.slice(-3).forEach((x, i) => g.set(x, i * 3));
             for (let i = gusts.length; i < 3; i++) g[i * 3 + 1] = 0;
             gl.uniform2f(uni.S, size[0], size[1]);
             gl.uniform3f(uni.P, t, fx, unit);
             gl.uniform3fv(uni.G, g);
-            gl.drawArrays(gl.TRIANGLES, 0, 3);
+            gl.clearColor(0, 0, 0, 0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 16, count);
             cv.style.display = '';
         },
         destroy() {
@@ -766,7 +798,7 @@ function mount(THREE, host) {
             unitPx = unit;
             if (m) {
                 hostX = host.getBoundingClientRect().left - m.left + W / 2;
-                try { land.resize(m, field.img, unit, min(devicePixelRatio || 1, 2)); } catch (e) { /* the scenery is a nicety */ }
+                try { land.resize(m, field, unit, min(devicePixelRatio || 1, 2)); } catch (e) { /* the scenery is a nicety */ }
             }
             model?.geo.dispose(); model?.dg.dispose();
             model = next;
