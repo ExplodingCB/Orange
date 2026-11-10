@@ -22,7 +22,7 @@ for (const layout of ['wide', 'tall']) {
     await page.goto(`${pathToFileURL(join(here, 'paint.html'))}?render&layout=${layout}`);
     await page.waitForFunction(() => window.painted, null, { timeout: 300000 });
     const type = preview ? 'image/png' : 'image/webp';
-    const url = await page.evaluate(t => document.getElementById('out').toDataURL(t, 0.86), type);
+    const url = await page.evaluate(t => document.getElementById('out').toDataURL(t, 0.84), type);
     const out = preview ? join(here, 'out', `sky-${layout}.png`) : join(here, '..', 'assets', `sky-${layout}.webp`);
     mkdirSync(dirname(out), { recursive: true });
     const buf = Buffer.from(url.split(',')[1], 'base64');

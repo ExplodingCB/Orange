@@ -1,16 +1,19 @@
-/* Homepage: one painted screen. The sky is an oil painting in assets/sky-*.webp, made by background-src/paint.py. */
+/* Homepage: one painted screen. The sky is an oil painting in assets/sky-*.webp, made by background-src/paint.html.
+   Text is set in paint too: SVG filters in index.html wear its edges and light the name like impasto. */
 :root {
     --ink: #17233f;
+    --paint: #1d2f66;
     --ink-soft: #2c3a5c;
     --paper: #faf7ee;
     --sun: #9a4a0b;
-    --halo: 0 0 3px rgba(250, 247, 238, .55), 0 0 16px rgba(250, 247, 238, .6), 0 0 34px rgba(250, 247, 238, .35);
+    --halo: 0 0 10px rgba(250, 247, 238, .35);
     --serif: 'EB Garamond', Georgia, serif;
     --display: 'Fraunces', Georgia, serif;
     --gutter: clamp(20px, 4.5vw, 72px);
 }
 
 * { box-sizing: border-box; }
+.paint-defs { position: absolute; }
 html { color-scheme: light; background: #8fb6db; }
 body {
     margin: 0;
@@ -21,10 +24,10 @@ body {
     font-size: 1.1875rem;
     line-height: 1.45;
     -webkit-font-smoothing: antialiased;
-    background: #8fb6db url("assets/sky-wide.webp?v=20261110-flow") center 75% / cover no-repeat;
+    background: #8fb6db url("assets/sky-wide.webp?v=20261110-flow2") center 75% / cover no-repeat;
 }
 @media (max-aspect-ratio: 4/5) {
-    body { background-image: url("assets/sky-tall.webp?v=20261110-flow"); background-position: center bottom; }
+    body { background-image: url("assets/sky-tall.webp?v=20261110-flow2"); background-position: center bottom; }
 }
 a { color: inherit; text-decoration: none; }
 a:hover { color: var(--sun); }
@@ -43,7 +46,7 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
 
 .topbar { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; }
 .mark { display: inline-flex; padding: 8px; margin: -8px; }
-.mark svg { width: clamp(30px, 2.6vw, 38px); height: auto; filter: drop-shadow(0 0 6px rgba(250, 247, 238, .7)); }
+.mark svg { width: clamp(30px, 2.6vw, 38px); height: auto; filter: url(#paint-text); }
 .nav { display: flex; gap: clamp(18px, 2.4vw, 34px); }
 .nav a {
     padding-block: 10px;
@@ -64,8 +67,10 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
     font-size: clamp(3.4rem, 7.4vw, 7rem);
     line-height: .95;
     letter-spacing: -.012em;
-    text-shadow: var(--halo);
+    color: var(--paint);
+    filter: url(#paint-name);
 }
+.nav, .roles, .resume { filter: url(#paint-text); }
 .roles { list-style: none; margin: clamp(18px, 3.4vh, 34px) 0 0; padding: 0; font-size: 1.3125rem; }
 .roles li + li { margin-top: .15rem; }
 .roles a { display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; text-shadow: var(--halo); }
