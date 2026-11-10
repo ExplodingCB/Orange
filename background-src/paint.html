@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<!--
+  Paints the homepage sky and meadow as an impressionist oil painting.
+
+  Open this file in a browser to see the painting and adjust it (seed, stroke
+  length and width, impasto), then save it with the buttons. Or render both
+  sizes straight into assets/ with:
+
+      node background-src/paint.mjs
+
+  How it works: every stroke is one smooth brush mark traced along a flow field
+  (sky strokes ride long swells and wrap around the clouds, grass blades sweep
+  up from their base and lean with the wind). A mark is round where the brush
+  lands and lifts to a point, stops where the picture changes colour so shapes
+  keep clean edges, and carries a few soft streaks of a second colour inside
+  it. Strokes go down in layers: a thin block-in, broad marks that cover the
+  canvas, narrower ones over them, then a few accents. A second canvas records
+  how thick the paint is (bristle furrows, paint pushed up at the edges, the
+  newest stroke on top) and that relief is lit from the sun's side at the end.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sky painter</title>
+<style>
+    body { margin: 0; background: #222; color: #eee; font: 13px/1.4 system-ui, sans-serif; }
+    canvas { display: block; max-width: 100%; height: auto; }
+    .panel { position: fixed; top: 10px; right: 10px; display: grid; gap: 6px; width: 220px; padding: 12px; background: rgba(20, 20, 20, .85); border-radius: 8px; }
+    .panel label { display: grid; grid-template-columns: 1fr 70px; align-items: center; gap: 6px; }
+    .panel input, .panel select, .panel button { font: inherit; }
+    .panel input[type=range] { grid-column: 1 / -1; }
+    body.render .panel { display: none; }
+</style>
+</head>
+<body>
+<canvas id="out"></canvas>
+<div class="panel">
+    <label>Layout <select id="layout"><option value="wide">wide 2560x1600</option><option value="tall">tall 1200x2400</option></select></label>
+    <label>Part <select id="part"><option value="full">everything</option><option value="base">sky and meadow</option><option value="clouds">clouds only</option></select></label>
+    <label>Seed <input id="seed" type="number" value="20261110"></label>
+    <label>Stroke length <span id="lengthV"></span><input id="length" type="range" min="0.5" max="2" step="0.05" value="1"></label>
+    <label>Stroke width <span id="widthV"></span><input id="width" type="range" min="0.5" max="2" step="0.05" value="1"></label>
+    <label>Impasto <span id="impastoV"></span><input id="impasto" type="range" min="0" max="2" step="0.05" value="1"></label>
+    <button id="go">Repaint</button>
+    <button id="save">Save WebP</button>
+</div>
+<script>
+'use strict';
+
+const LAYOUTS = {
+    wide: { w: 2560, h: 1600, unit: 1.75, horizon: 0.84, sun: [0.27, 0.13, 0.07],
+            clouds: [[0.75, 0.36, 0.30, 0.15, 14], [0.43, 0.65, 0.25, 0.08, 10]] },
+    tall: { w: 1200, h: 2400, unit: 2.6, horizon: 0.86, sun: [0.30, 0.10, 0.13],
+            clouds: [[0.74, 0.47, 0.62, 0.085, 11]] },
+};
+
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16) / 255);
+const P = {
+    skyTop: hex('#5a8bcc'), skyMid: hex('#89b3df'), skyLow: hex('#c2d7e9'), haze: hex('#ece2cf'),
+    glow: hex('#fbf3d8'), cloud: hex('#f7f2e8'), cloudShade: hex('#b4b8d6'),
+    trees: hex('#7a9893'), treesShade: hex('#587783'),
+    fieldFar: hex('#aab97f'), fieldMid: hex('#7ea252'), fieldNear: hex('#557f3f'),
+    grassShade: hex('#3b6347'), grassLight: hex('#cdc874'),
+};
+const SKY_ACCENTS = ['#a7a6d6', '#e4c7cf', '#f3e7cb', '#a6cfd2', '#7a9fd8'].map(hex);
+const GRASS_ACCENTS = ['#d8cb78', '#93b15c', '#6b8e86', '#a6b86c', '#c4ad78'].map(hex);
+
+// ---- seeded randomness and noise ----
+function mulberry32(a) {
+    return () => {
+        a |= 0; a = a + 0x6D2B79F5 | 0;
+        let t = Math.imul(a ^ a >>> 15, 1 | a);
+        t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    };
+}
+function makeNoise(seed) {
+    const hash = (x, y) => {
+        let h = Math.imul(x, 374761393) + Math.imul(y, 668265263) + Math.imul(seed, 2147483647) | 0;
+        h = Math.imul(h ^ h >>> 13, 1274126177);
+        return ((h ^ h >>> 16) >>> 0) / 4294967296;
+    };
+    const s = t => t * t * (3 - 2 * t);
+    const n = (x, y) => {
+        const ix = Math.floor(x), iy = Math.floor(y), fx = s(x - ix), fy = s(y - iy);
+        const a = hash(ix, iy), b = hash(ix + 1, iy), c = hash(ix, iy + 1), d = hash(ix + 1, iy + 1);
+        return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+    };
+    return (x, y, oct = 3) => {
+        let sum = 0, amp = 1, norm = 0, f = 1;
+        for (let i = 0; i < oct; i++) { sum += amp * n(x * f + i * 17.3, y * f - i * 9.1); norm += amp; amp *= 0.5; f *= 2.03; }
+        return sum / norm;
+    };
+}
+const clamp = (x, a, b) => Math.min(b, Math.max(a, x));
+const smooth = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const mix = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
+
+function paint(canvas, layoutName, opts) {
+    const L = LAYOUTS[layoutName];
+    // Painted at 1.5x the nominal size so it stays sharp on high-density screens.
+    const SS = 1.5, W = Math.round(L.w * SS), H = Math.round(L.h * SS), U = L.unit * SS;
+    const lenK = opts.length, widK = opts.width;
+    // part: 'full' is the whole painting. The site uses 'base' (no clouds) with 'clouds' (only
+    // the clouds, on a clear canvas that tiles sideways) laid over it, so the clouds can drift.
+    const PART = opts.part || 'full', CL = PART === 'clouds';
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    const hc = document.createElement('canvas');
+    hc.width = W; hc.height = H;
+    const hctx = hc.getContext('2d');
+    hctx.fillStyle = '#000'; hctx.fillRect(0, 0, W, H);
+
+    const rand = mulberry32(opts.seed);
+    const R = (a, b) => a + (b - a) * rand();
+    const gauss = () => { let s = 0; for (let i = 0; i < 4; i++) s += rand(); return (s - 2) / 0.577; };
+    const noise = makeNoise(opts.seed);
+    const HZ = L.horizon * H;
+    const [sx, sy, sr] = L.sun;
+
+    // ---- the picture the strokes are trying to paint ----
+    const treeTop = new Float32Array(W);
+    for (let x = 0; x < W; x++) {
+        const X = x / U;
+        treeTop[x] = HZ - (12 + 22 * noise(X / 40, 3.3, 3) + 24 * noise(X / 190, 7.7, 2)) * U;
+    }
+    const tt = x => treeTop[clamp(x | 0, 0, W - 1)];
+    const region = (x, y) => y < tt(x) ? 0 : y < HZ + 2 * U ? 1 : 2; // sky, trees, field
+
+    const puffs = [];
+    for (const [cx, cy, cw, ch, n] of L.clouds) {
+        for (let i = 0; i < n; i++) {
+            const px = cx + gauss() * cw * 0.27;
+            const lift = Math.exp(-(((px - cx) / (cw * 0.35)) ** 2));
+            const py = cy - Math.abs(gauss()) * ch * 0.25 * (0.4 + lift);
+            const rx = cw * R(0.12, 0.26);
+            const ry = Math.min(rx * (W / H) * R(0.5, 0.8), ch * 0.8);
+            puffs.push({ px, py, rx, ry, base: cy + ch * 0.05, floor: cy + ch * 0.32 });
+        }
+    }
+    function cloudAt(x, y) {
+        if (PART === 'base') return [0, 0];
+        const u = x / W, v = y / H;
+        const lumpy = (noise(x / U / 26, y / U / 26, 2) - 0.5) * 0.5;
+        let c = 0, sh = 0;
+        for (const p of puffs) {
+            let du = u - p.px;
+            if (CL) du -= Math.round(du);   // the cloud layer wraps left to right
+            const d = Math.hypot(du / p.rx, (v - p.py) / p.ry) + lumpy;
+            if (d > 1.1) continue;
+            const b = smooth(1.05, 0.5, d) * smooth(p.floor, p.base, v);
+            if (b > c) c = b;
+            const s = b * smooth(p.py - p.ry * 0.1, p.py + p.ry * 0.9, v);
+            if (s > sh) sh = s;
+        }
+        return [c, sh];
+    }
+    function target(x, y) {
+        x = CL ? ((x % W) + W) % W : clamp(x, 0, W - 1); y = clamp(y, 0, H - 1);
+        const reg = CL ? 0 : region(x, y);
+        const X = x / U, Y = y / U;
+        if (reg === 0) {
+            const t = clamp(y / HZ, 0, 1);
+            let c = mix(P.skyTop, P.skyMid, smooth(0, 0.6, t));
+            c = mix(c, P.skyLow, smooth(0.5, 1, t));
+            c = mix(c, P.haze, 0.5 * smooth(0.8, 1, t));
+            c = mix(c, [0.48, 0.6, 0.86], 0.18 * smooth(0.55, 0.8, noise(X / 300, Y / 220, 2)));
+            const sd = Math.hypot(x - sx * W, y - sy * H) / (sr * W);
+            c = mix(c, P.glow, 0.95 * smooth(3.4, 0.3, sd) ** 1.6);
+            const [cl, sh] = cloudAt(x, y);
+            if (cl > 0) {
+                let cc = mix(P.cloud, P.cloudShade, clamp(sh * 0.9, 0, 1));
+                cc = mix(cc, P.glow, 0.3 * smooth(6, 2, sd));
+                c = mix(c, cc, cl * 0.96);
+            }
+            return c;
+        }
+        if (reg === 1) return mix(P.trees, P.treesShade, smooth(0.25, 1, (y - tt(x)) / (HZ - tt(x) + 1)) * (0.7 + 0.5 * noise(X / 30, Y / 30, 2)));
+        const ft = clamp((y - HZ) / (H - HZ), 0, 1);
+        let c = mix(P.fieldFar, P.fieldMid, smooth(0, 0.45, ft));
+        c = mix(c, P.fieldNear, smooth(0.35, 1, ft));
+        c = mix(c, P.grassLight, 1.3 * clamp(noise(X / 110, Y / 60, 2) - 0.52, 0, 1) * (1 - ft * 0.4));
+        c = mix(c, P.grassShade, 1.1 * clamp(0.46 - noise(X / 80 + 40, Y / 50, 2), 0, 1) * ft);
+        c = mix(c, P.fieldFar, 0.45 * smooth(0.45, 0, x / W) * ft); // lighter under the links
+        return c;
+    }
+
+    // ---- which way the brush travels ----
+    function angleAt(x, y, reg) {
+        const X = x / U, Y = y / U;
+        if (reg === 0) {
+            let a = -0.05 + (noise(X / 420, Y / 260, 2) - 0.5) * 1.5 + 0.1 * Math.sin(X / 230 + 3 * noise(X / 300, Y / 300, 1));
+            const e = 5 * U;
+            const gx = cloudAt(x + e, y)[0] - cloudAt(x - e, y)[0];
+            const gy = cloudAt(x, y + e)[0] - cloudAt(x, y - e)[0];
+            const g = Math.hypot(gx, gy);
+            const inside = cloudAt(x, y)[0];
+            if (g > 0.02 && inside > 0.15) {
+                let tng = Math.atan2(gx, -gy);
+                if (Math.cos(tng) < 0) tng += Math.PI;
+                const k = clamp(g * 2.4, 0, 0.8) * smooth(0.1, 0.4, inside);
+                a = Math.atan2(Math.sin(a) * (1 - k) + Math.sin(tng) * k, Math.cos(a) * (1 - k) + Math.cos(tng) * k);
+            }
+            return a;
+        }
+        if (reg === 1) return -Math.PI / 2 + (noise(X / 14, Y / 14, 1) - 0.5) * 1.3;
+        const ft = clamp((y - HZ) / (H - HZ), 0, 1);
+        const up = -Math.PI / 2 + 0.18 + (noise(X / 90, Y / 110, 2) - 0.5) * 1.1;
+        const flat = -0.03 + (noise(X / 200, Y / 40, 1) - 0.5) * 0.25;
+        const k = smooth(0.12, 0.32, ft);
+        return Math.atan2(Math.sin(flat) * (1 - k) + Math.sin(up) * k, Math.cos(flat) * (1 - k) + Math.cos(up) * k);
+    }
+
+    // ---- block-in: a thin, even coat so nothing ever shows through ----
+    // For the cloud layer it is only the clouds' soft bodies, fading out at their edges.
+    {
+        const s = CL ? 4 : 8;
+        const bw = Math.ceil(W / s), bh = Math.ceil(H / s);
+        const small = document.createElement('canvas');
+        small.width = bw; small.height = bh;
+        const sctx = small.getContext('2d');
+        const img = sctx.createImageData(bw, bh);
+        for (let j = 0; j < bh; j++) for (let i = 0; i < bw; i++) {
+            const x = i * s + s / 2, y = j * s + s / 2, k = (j * bw + i) * 4;
+            const al = CL ? smooth(0.22, 0.6, cloudAt(x, y)[0]) : 1;
+            if (!al) continue;
+            const c = target(x, y);
+            img.data[k] = c[0] * 255; img.data[k + 1] = c[1] * 255; img.data[k + 2] = c[2] * 255; img.data[k + 3] = al * 255;
+        }
+        sctx.putImageData(img, 0, 0);
+        ctx.imageSmoothingQuality = 'high';
+        if (!CL) ctx.drawImage(small, 0, 0, W, H);   // unblurred first, so the blur's soft border never shows
+        ctx.filter = `blur(${(CL ? 2.5 : 4) * U}px)`;
+        for (const dx of CL ? [-W, 0, W] : [0]) ctx.drawImage(small, dx, 0, W, H);
+        ctx.filter = 'none';
+    }
+
+    const css = c => `rgb(${(clamp(c[0], 0, 1) * 255) | 0},${(clamp(c[1], 0, 1) * 255) | 0},${(clamp(c[2], 0, 1) * 255) | 0})`;
+    const jitter = (c, a) => { const v = gauss() * a; return [c[0] * (1 + v + gauss() * a * 0.4), c[1] * (1 + v + gauss() * a * 0.4), c[2] * (1 + v + gauss() * a * 0.4)]; };
+
+    // ---- one stroke: a single loaded brush mark ----
+    // The path follows the flow field both ways from where the brush lands and stops where
+    // the picture changes colour, so shapes keep clean edges. The mark is one smooth ribbon,
+    // round where the brush touches down and lifting to a point, with a few soft streaks of
+    // the brush's second colour dragged along inside it.
+    function trace(x, y, reg, s, a, steps, step, c0) {
+        const out = [];
+        for (let i = 0; i < steps; i++) {
+            const want = angleAt(x, y, reg) + (a.back ? Math.PI : 0);
+            a.v += clamp(wrap(want - a.v), -0.05, 0.05);
+            x += Math.cos(a.v) * step; y += Math.sin(a.v) * step;
+            if (!CL && (x < -60 * U || x > W + 60 * U) || y < -60 * U || y > H + 60 * U) break;
+            const r = CL ? reg : region(x, y);
+            if (r !== reg && !(reg === 2 && r === 1 && i < 3)) break;
+            if (s.edge) { const c = target(x, y); if (Math.hypot(c[0] - c0[0], c[1] - c0[1], c[2] - c0[2]) > s.edge) break; }
+            out.push([x, y]);
+        }
+        return out;
+    }
+    function ribbon(k, pts, nrm, i0, i1, off, hw) {
+        k.beginPath();
+        for (let i = i0; i <= i1; i++) { const o = off(i) + hw(i); k.lineTo(pts[i][0] + nrm[i][0] * o, pts[i][1] + nrm[i][1] * o); }
+        for (let i = i1; i >= i0; i--) { const o = off(i) - hw(i); k.lineTo(pts[i][0] + nrm[i][0] * o, pts[i][1] + nrm[i][1] * o); }
+        k.closePath();
+    }
+    function stroke(x, y, length, width, reg, s) {
+        const step = 1.5 * U, n = Math.max(4, Math.round(length / step));
+        const c0 = target(x, y);
+        const a0 = angleAt(x, y, reg) + gauss() * (s.spread || 0.04);
+        let pts;
+        if (s.fromBase) pts = [[x, y], ...trace(x, y, reg, s, { v: a0 }, n, step, c0)];
+        else pts = [...trace(x, y, reg, s, { v: a0 + Math.PI, back: true }, n >> 1, step, c0).reverse(), [x, y], ...trace(x, y, reg, s, { v: a0 }, n >> 1, step, c0)];
+        const N = pts.length - 1;
+        if (N < 3) return;
+        const hwMax = Math.min(width / 2, N * step * 0.3);
+        const nrm = pts.map((p, i) => {
+            const q = pts[Math.min(i + 1, N)], o = pts[Math.max(i - 1, 0)];
+            const dx = q[0] - o[0], dy = q[1] - o[1], d = Math.hypot(dx, dy) || 1;
+            return [-dy / d, dx / d];
+        });
+        // Half-width along the stroke: a round start, a slow taper, a lifted tail.
+        const head = clamp(hwMax / (N * step), 0.03, 0.3), tail = s.tail || 0.3, taper = s.taper || 0.15;
+        const prof = (t) => {
+            let w = 1 - taper * t * t;
+            if (t < head) w *= Math.sqrt(1 - (1 - t / head) ** 2);
+            if (t > 1 - tail) w *= Math.pow(Math.max(0, 1 - ((t - 1 + tail) / tail) ** 2), 0.7);
+            return w;
+        };
+        const hw = (i) => hwMax * prof(i / N);
+
+        let c1 = jitter(c0, s.jitter);
+        let c2 = jitter(target(x + gauss() * 9 * U, y + gauss() * 9 * U), s.jitter);
+        if (s.shade && rand() < s.shade) c1 = mix(c1, P.grassShade, R(0.2, 0.45));
+        if (rand() < s.accent) c2 = mix(c2, s.accents[(rand() * s.accents.length) | 0], R(0.15, 0.32));
+        if (rand() < s.accent * 0.3) c1 = mix(c1, s.accents[(rand() * s.accents.length) | 0], R(0.08, 0.18));
+
+        const thick = s.thick || 1, base = 0.5 + 0.1 * rand();
+        const grey = (v) => { const g = (clamp(v * thick, 0, 1) * 255) | 0; return `rgb(${g},${g},${g})`; };
+        // Streaks: the second colour, and the furrows the bristles leave.
+        const ns = clamp(Math.round(hwMax / (2.6 * U)), 1, 5), streaks = [];
+        for (let j = 0; j < ns; j++) {
+            const i0 = Math.round(N * R(0.02, 0.3)), i1 = Math.round(N * R(0.65, 0.97));
+            if (i1 - i0 < 3) continue;
+            const f = ((j + 0.5) / ns - 0.5) * 1.5 + gauss() * 0.1, wf = R(0.16, 0.34);
+            const v = 1 + gauss() * 0.02, c = mix(c1, c2, R(0.35, 1));
+            streaks.push({ i0, i1, f, wf, col: css([c[0] * v, c[1] * v, c[2] * v]), a: R(0.35, 0.7), g: grey(base + R(-0.14, 0.16)) });
+        }
+        // The cloud layer tiles sideways, so a mark that runs off one edge comes in at the other.
+        for (const dx of CL ? [-W, 0, W] : [0]) {
+            ctx.setTransform(1, 0, 0, 1, dx, 0); hctx.setTransform(1, 0, 0, 1, dx, 0);
+            ribbon(ctx, pts, nrm, 0, N, () => 0, hw);
+            ctx.globalAlpha = 0.97; ctx.fillStyle = css(c1); ctx.fill();
+            ribbon(hctx, pts, nrm, 0, N, () => 0, hw);
+            hctx.globalAlpha = 0.95; hctx.fillStyle = grey(base); hctx.fill();
+            // Paint pushed up along the sides of the mark.
+            hctx.globalAlpha = 0.35; hctx.strokeStyle = grey(base + 0.22); hctx.lineWidth = 1.4 * U; hctx.lineJoin = 'round'; hctx.stroke();
+            for (const k of streaks) {
+                const off = (i) => hw(i) * k.f * 0.8;
+                const shw = (i) => hw(i) * k.wf * Math.sqrt(Math.max(0, Math.sin(Math.PI * (i - k.i0) / (k.i1 - k.i0))));
+                ribbon(ctx, pts, nrm, k.i0, k.i1, off, shw);
+                ctx.globalAlpha = k.a; ctx.fillStyle = k.col; ctx.fill();
+                ribbon(hctx, pts, nrm, k.i0, k.i1, off, shw);
+                hctx.globalAlpha = 0.6; hctx.fillStyle = k.g; hctx.fill();
+            }
+        }
+        ctx.setTransform(1, 0, 0, 1, 0, 0); hctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.globalAlpha = hctx.globalAlpha = 1;
+    }
+
+    // Spread strokes evenly: one per cell of a jittered grid sized from the coverage wanted.
+    function layer(reg, s) {
+        const y0 = reg === 0 ? 0 : reg === 1 ? Math.min(...treeTop) : HZ;
+        const y1 = reg === 0 ? HZ : reg === 1 ? HZ + 2 * U : H + (s.fromBase ? 30 * U : 0);
+        const area = W * (y1 - y0);
+        const meanL = (s.len[0] + s.len[1]) / 2 * U * lenK, meanW = (s.wid[0] + s.wid[1]) / 2 * U * widK;
+        const count = Math.ceil(area * s.cover * (CL ? 1.8 : 1) / (meanL * meanW));
+        const cell = Math.sqrt(area / count);
+        const jobs = [];
+        for (let y = y0; y < y1; y += cell) for (let x = 0; x < W; x += cell) {
+            const px = x + rand() * cell, py = y + rand() * cell;
+            if (region(px, Math.min(py, H - 1)) !== reg) continue;
+            if (CL && cloudAt(px, py)[0] < 0.25) continue;
+            jobs.push([px, py]);
+        }
+        // Painters don't work in raster order. Grass is the exception: far blades first,
+        // so nearer ones overlap them.
+        for (let i = jobs.length - 1; i > 0; i--) { const j = (rand() * (i + 1)) | 0; [jobs[i], jobs[j]] = [jobs[j], jobs[i]]; }
+        if (s.fromBase) jobs.sort((p, q) => (p[1] - q[1]) + (rand() - 0.5) * 20 * U);
+        for (const [px, py] of jobs) {
+            let len = R(s.len[0], s.len[1]) * U * lenK, wid = R(s.wid[0], s.wid[1]) * U * widK;
+            if (s.grow) { const ft = clamp((py - HZ) / (H - HZ), 0, 1); len *= 0.5 + ft * s.grow; wid *= 0.7 + ft * 0.5; }
+            stroke(px, py, len, wid, reg, s);
+        }
+    }
+
+    const sky = { accents: SKY_ACCENTS };
+    layer(0, { ...sky, len: [110, 220], wid: [22, 34], cover: 1.8, jitter: 0.012, accent: 0.06, edge: 0.075, tail: 0.3 });
+    layer(0, { ...sky, len: [60, 130], wid: [12, 19], cover: 1.2, jitter: 0.016, accent: 0.2, edge: 0.05, tail: 0.35 });
+    layer(0, { ...sky, len: [30, 70], wid: [6, 10], cover: 0.2, jitter: 0.02, accent: 0.35, edge: 0.04, tail: 0.4 });
+    if (!CL) {
+        const tr = { accents: GRASS_ACCENTS, spread: 0.3 };
+        layer(1, { ...tr, len: [14, 30], wid: [10, 15], cover: 2.4, jitter: 0.03, accent: 0.08, tail: 0.4 });
+        layer(1, { ...tr, len: [9, 20], wid: [5, 8], cover: 0.8, jitter: 0.035, accent: 0.12, tail: 0.5 });
+        const gr = { accents: GRASS_ACCENTS };
+        layer(2, { ...gr, len: [34, 70], wid: [14, 22], cover: 1.9, jitter: 0.02, accent: 0.08, grow: 0.6, tail: 0.4 });
+        layer(2, { ...gr, len: [26, 56], wid: [5.5, 9.5], cover: 1.5, jitter: 0.03, accent: 0.22, grow: 0.9, taper: 0.3, tail: 0.65, shade: 0.18, fromBase: true, spread: 0.1 });
+        layer(2, { ...gr, len: [16, 36], wid: [3.2, 5], cover: 0.35, jitter: 0.04, accent: 0.45, grow: 1, taper: 0.3, tail: 0.7, fromBase: true, spread: 0.14 });
+    }
+
+    // ---- light the paint from the upper left ----
+    const imp = opts.impasto;
+    if (imp > 0) {
+        const hb = document.createElement('canvas');
+        hb.width = W; hb.height = H;
+        const hbx = hb.getContext('2d');
+        hbx.filter = `blur(${1.3 * U}px)`;
+        hbx.drawImage(hc, 0, 0);
+        const hd = hbx.getImageData(0, 0, W, H).data;
+        const id = ctx.getImageData(0, 0, W, H);
+        const d = id.data;
+        const lx = -0.55, ly = -0.6, lz = 0.58, ll = Math.hypot(lx, ly, lz);
+        const s = 0.011 / U * imp;
+        const hx = lx / ll, hy = ly / ll, hz = lz / ll + 1, hl = Math.hypot(hx, hy, hz);
+        // Canvas weave, faint, felt only through the relief.
+        const weave = (x, y) => {
+            const p = 3.2 * U, cx = Math.floor(x / p), cy = Math.floor(y / p);
+            return (cx + cy) & 1 ? Math.sin(x / p * Math.PI) ** 2 : Math.sin(y / p * Math.PI) ** 2;
+        };
+        for (let y = 1; y < H - 1; y++) {
+            for (let x = 1; x < W - 1; x++) {
+                const k = (y * W + x) * 4;
+                const gx = (hd[k + 4] - hd[k - 4]) + 5 * (weave(x + 1, y) - weave(x - 1, y));
+                const gy = (hd[k + W * 4] - hd[k - W * 4]) + 5 * (weave(x, y + 1) - weave(x, y - 1));
+                const nx = -gx * s, ny = -gy * s, nl = Math.sqrt(nx * nx + ny * ny + 1);
+                const diff = (nx * lx + ny * ly + lz) / (nl * ll);
+                const shade = 1 + 0.36 * (diff - lz / ll);
+                const spec = Math.pow(clamp((nx * hx + ny * hy + hz) / (nl * hl), 0, 1), 36) * 7 * imp;
+                d[k] = d[k] * shade + spec; d[k + 1] = d[k + 1] * shade + spec; d[k + 2] = d[k + 2] * shade + spec;
+            }
+        }
+        ctx.putImageData(id, 0, 0);
+    }
+}
+
+// ---- page wiring ----
+const q = new URLSearchParams(location.search);
+const $ = id => document.getElementById(id);
+if (q.has('render')) document.body.classList.add('render');
+for (const k of ['layout', 'part', 'seed', 'length', 'width', 'impasto']) if (q.has(k)) $(k).value = q.get(k);
+const show = () => { for (const k of ['length', 'width', 'impasto']) $(k + 'V').textContent = (+$(k).value).toFixed(2); };
+function run() {
+    show();
+    const t = performance.now();
+    paint($('out'), $('layout').value, { part: $('part').value, seed: +$('seed').value, length: +$('length').value, width: +$('width').value, impasto: +$('impasto').value });
+    window.paintMs = Math.round(performance.now() - t);
+    window.painted = true;
+}
+for (const k of ['length', 'width', 'impasto']) $(k).addEventListener('input', show);
+$('go').onclick = () => { window.painted = false; setTimeout(run, 10); };
+$('save').onclick = () => {
+    const a = document.createElement('a');
+    a.download = `${$('part').value === 'clouds' ? 'clouds' : 'sky'}-${$('layout').value}.webp`;
+    a.href = $('out').toDataURL('image/webp', 0.84);
+    a.click();
+};
+run();
+</script>
+</body>
+</html>

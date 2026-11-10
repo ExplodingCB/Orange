@@ -1,10 +1,10 @@
 # Share card
 
-The public share image is `chase-share-v2.jpg`, a 1200 x 630 JPEG. It is rendered from `share-src/home-card.html`, which draws the forest with the site's own `journey.js`, so the card matches the homepage. The comment at the top of that file has the render command. Open Graph and X metadata in `index.html` reference its absolute URL on `https://explodingcb.com`.
+The public share image is `chase-share-v3.jpg`, a 1200 x 630 JPEG. It is a capture of the homepage itself (the painted sky, the name and the sunflower) with the nav and icon links hidden, taken by `share-src/render-home-card.mjs`. The comment at the top of that file has the command. Open Graph and X metadata in `index.html` reference its absolute URL on `https://explodingcb.com`.
 
 When replacing the image, use a new versioned filename and update both image URLs and their dimensions in the page metadata. This gives preview services a fresh image URL.
 
-`chase-share-v1.jpg` is the earlier, AI-generated card, kept so previews already cached against it still resolve.
+`chase-share-v2.jpg` (the text-character forest, still used by the About page) and `chase-share-v1.jpg` (the first, AI-generated card) are kept so previews already cached against them still resolve.
 
 ## Metadata references
 
