@@ -37,6 +37,7 @@
 <canvas id="out"></canvas>
 <div class="panel">
     <label>Layout <select id="layout"><option value="wide">wide 2560x1600</option><option value="tall">tall 1200x2400</option></select></label>
+    <label>Part <select id="part"><option value="full">everything</option><option value="base">sky and meadow</option><option value="clouds">clouds only</option></select></label>
     <label>Seed <input id="seed" type="number" value="20261110"></label>
     <label>Stroke length <span id="lengthV"></span><input id="length" type="range" min="0.5" max="2" step="0.05" value="1"></label>
     <label>Stroke width <span id="widthV"></span><input id="width" type="range" min="0.5" max="2" step="0.05" value="1"></label>
@@ -102,6 +103,9 @@ function paint(canvas, layoutName, opts) {
     // Painted at 1.5x the nominal size so it stays sharp on high-density screens.
     const SS = 1.5, W = Math.round(L.w * SS), H = Math.round(L.h * SS), U = L.unit * SS;
     const lenK = opts.length, widK = opts.width;
+    // part: 'full' is the whole painting. The site uses 'base' (no clouds) with 'clouds' (only
+    // the clouds, on a clear canvas that tiles sideways) laid over it, so the clouds can drift.
+    const PART = opts.part || 'full', CL = PART === 'clouds';
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d');
     const hc = document.createElement('canvas');
@@ -137,11 +141,14 @@ function paint(canvas, layoutName, opts) {
         }
     }
     function cloudAt(x, y) {
+        if (PART === 'base') return [0, 0];
         const u = x / W, v = y / H;
         const lumpy = (noise(x / U / 26, y / U / 26, 2) - 0.5) * 0.5;
         let c = 0, sh = 0;
         for (const p of puffs) {
-            const d = Math.hypot((u - p.px) / p.rx, (v - p.py) / p.ry) + lumpy;
+            let du = u - p.px;
+            if (CL) du -= Math.round(du);   // the cloud layer wraps left to right
+            const d = Math.hypot(du / p.rx, (v - p.py) / p.ry) + lumpy;
             if (d > 1.1) continue;
             const b = smooth(1.05, 0.5, d) * smooth(p.floor, p.base, v);
             if (b > c) c = b;
@@ -151,8 +158,8 @@ function paint(canvas, layoutName, opts) {
         return [c, sh];
     }
     function target(x, y) {
-        x = clamp(x, 0, W - 1); y = clamp(y, 0, H - 1);
-        const reg = region(x, y);
+        x = CL ? ((x % W) + W) % W : clamp(x, 0, W - 1); y = clamp(y, 0, H - 1);
+        const reg = CL ? 0 : region(x, y);
         const X = x / U, Y = y / U;
         if (reg === 0) {
             const t = clamp(y / HZ, 0, 1);
@@ -207,22 +214,26 @@ function paint(canvas, layoutName, opts) {
     }
 
     // ---- block-in: a thin, even coat so nothing ever shows through ----
+    // For the cloud layer it is only the clouds' soft bodies, fading out at their edges.
     {
-        const s = 8;
+        const s = CL ? 4 : 8;
         const bw = Math.ceil(W / s), bh = Math.ceil(H / s);
         const small = document.createElement('canvas');
         small.width = bw; small.height = bh;
         const sctx = small.getContext('2d');
         const img = sctx.createImageData(bw, bh);
         for (let j = 0; j < bh; j++) for (let i = 0; i < bw; i++) {
-            const c = target(i * s + s / 2, j * s + s / 2), k = (j * bw + i) * 4;
-            img.data[k] = c[0] * 255; img.data[k + 1] = c[1] * 255; img.data[k + 2] = c[2] * 255; img.data[k + 3] = 255;
+            const x = i * s + s / 2, y = j * s + s / 2, k = (j * bw + i) * 4;
+            const al = CL ? smooth(0.22, 0.6, cloudAt(x, y)[0]) : 1;
+            if (!al) continue;
+            const c = target(x, y);
+            img.data[k] = c[0] * 255; img.data[k + 1] = c[1] * 255; img.data[k + 2] = c[2] * 255; img.data[k + 3] = al * 255;
         }
         sctx.putImageData(img, 0, 0);
         ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(small, 0, 0, W, H);   // unblurred first, so the blur's soft border never shows
-        ctx.filter = `blur(${4 * U}px)`;
-        ctx.drawImage(small, 0, 0, W, H);
+        if (!CL) ctx.drawImage(small, 0, 0, W, H);   // unblurred first, so the blur's soft border never shows
+        ctx.filter = `blur(${(CL ? 2.5 : 4) * U}px)`;
+        for (const dx of CL ? [-W, 0, W] : [0]) ctx.drawImage(small, dx, 0, W, H);
         ctx.filter = 'none';
     }
 
@@ -240,8 +251,8 @@ function paint(canvas, layoutName, opts) {
             const want = angleAt(x, y, reg) + (a.back ? Math.PI : 0);
             a.v += clamp(wrap(want - a.v), -0.05, 0.05);
             x += Math.cos(a.v) * step; y += Math.sin(a.v) * step;
-            if (x < -60 * U || x > W + 60 * U || y < -60 * U || y > H + 60 * U) break;
-            const r = region(x, y);
+            if (!CL && (x < -60 * U || x > W + 60 * U) || y < -60 * U || y > H + 60 * U) break;
+            const r = CL ? reg : region(x, y);
             if (r !== reg && !(reg === 2 && r === 1 && i < 3)) break;
             if (s.edge) { const c = target(x, y); if (Math.hypot(c[0] - c0[0], c[1] - c0[1], c[2] - c0[2]) > s.edge) break; }
             out.push([x, y]);
@@ -287,26 +298,34 @@ function paint(canvas, layoutName, opts) {
 
         const thick = s.thick || 1, base = 0.5 + 0.1 * rand();
         const grey = (v) => { const g = (clamp(v * thick, 0, 1) * 255) | 0; return `rgb(${g},${g},${g})`; };
-        ribbon(ctx, pts, nrm, 0, N, () => 0, hw);
-        ctx.globalAlpha = 0.97; ctx.fillStyle = css(c1); ctx.fill();
-        ribbon(hctx, pts, nrm, 0, N, () => 0, hw);
-        hctx.globalAlpha = 0.95; hctx.fillStyle = grey(base); hctx.fill();
-        // Paint pushed up along the sides of the mark.
-        hctx.globalAlpha = 0.35; hctx.strokeStyle = grey(base + 0.22); hctx.lineWidth = 1.4 * U; hctx.lineJoin = 'round'; hctx.stroke();
         // Streaks: the second colour, and the furrows the bristles leave.
-        const ns = clamp(Math.round(hwMax / (2.6 * U)), 1, 5);
+        const ns = clamp(Math.round(hwMax / (2.6 * U)), 1, 5), streaks = [];
         for (let j = 0; j < ns; j++) {
             const i0 = Math.round(N * R(0.02, 0.3)), i1 = Math.round(N * R(0.65, 0.97));
             if (i1 - i0 < 3) continue;
             const f = ((j + 0.5) / ns - 0.5) * 1.5 + gauss() * 0.1, wf = R(0.16, 0.34);
-            const off = (i) => hw(i) * f * 0.8;
-            const shw = (i) => hw(i) * wf * Math.sqrt(Math.max(0, Math.sin(Math.PI * (i - i0) / (i1 - i0))));
             const v = 1 + gauss() * 0.02, c = mix(c1, c2, R(0.35, 1));
-            ribbon(ctx, pts, nrm, i0, i1, off, shw);
-            ctx.globalAlpha = R(0.35, 0.7); ctx.fillStyle = css([c[0] * v, c[1] * v, c[2] * v]); ctx.fill();
-            ribbon(hctx, pts, nrm, i0, i1, off, shw);
-            hctx.globalAlpha = 0.6; hctx.fillStyle = grey(base + R(-0.14, 0.16)); hctx.fill();
+            streaks.push({ i0, i1, f, wf, col: css([c[0] * v, c[1] * v, c[2] * v]), a: R(0.35, 0.7), g: grey(base + R(-0.14, 0.16)) });
         }
+        // The cloud layer tiles sideways, so a mark that runs off one edge comes in at the other.
+        for (const dx of CL ? [-W, 0, W] : [0]) {
+            ctx.setTransform(1, 0, 0, 1, dx, 0); hctx.setTransform(1, 0, 0, 1, dx, 0);
+            ribbon(ctx, pts, nrm, 0, N, () => 0, hw);
+            ctx.globalAlpha = 0.97; ctx.fillStyle = css(c1); ctx.fill();
+            ribbon(hctx, pts, nrm, 0, N, () => 0, hw);
+            hctx.globalAlpha = 0.95; hctx.fillStyle = grey(base); hctx.fill();
+            // Paint pushed up along the sides of the mark.
+            hctx.globalAlpha = 0.35; hctx.strokeStyle = grey(base + 0.22); hctx.lineWidth = 1.4 * U; hctx.lineJoin = 'round'; hctx.stroke();
+            for (const k of streaks) {
+                const off = (i) => hw(i) * k.f * 0.8;
+                const shw = (i) => hw(i) * k.wf * Math.sqrt(Math.max(0, Math.sin(Math.PI * (i - k.i0) / (k.i1 - k.i0))));
+                ribbon(ctx, pts, nrm, k.i0, k.i1, off, shw);
+                ctx.globalAlpha = k.a; ctx.fillStyle = k.col; ctx.fill();
+                ribbon(hctx, pts, nrm, k.i0, k.i1, off, shw);
+                hctx.globalAlpha = 0.6; hctx.fillStyle = k.g; hctx.fill();
+            }
+        }
+        ctx.setTransform(1, 0, 0, 1, 0, 0); hctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalAlpha = hctx.globalAlpha = 1;
     }
 
@@ -316,12 +335,13 @@ function paint(canvas, layoutName, opts) {
         const y1 = reg === 0 ? HZ : reg === 1 ? HZ + 2 * U : H + (s.fromBase ? 30 * U : 0);
         const area = W * (y1 - y0);
         const meanL = (s.len[0] + s.len[1]) / 2 * U * lenK, meanW = (s.wid[0] + s.wid[1]) / 2 * U * widK;
-        const count = Math.ceil(area * s.cover / (meanL * meanW));
+        const count = Math.ceil(area * s.cover * (CL ? 1.8 : 1) / (meanL * meanW));
         const cell = Math.sqrt(area / count);
         const jobs = [];
         for (let y = y0; y < y1; y += cell) for (let x = 0; x < W; x += cell) {
             const px = x + rand() * cell, py = y + rand() * cell;
             if (region(px, Math.min(py, H - 1)) !== reg) continue;
+            if (CL && cloudAt(px, py)[0] < 0.25) continue;
             jobs.push([px, py]);
         }
         // Painters don't work in raster order. Grass is the exception: far blades first,
@@ -339,13 +359,15 @@ function paint(canvas, layoutName, opts) {
     layer(0, { ...sky, len: [110, 220], wid: [22, 34], cover: 1.8, jitter: 0.012, accent: 0.06, edge: 0.075, tail: 0.3 });
     layer(0, { ...sky, len: [60, 130], wid: [12, 19], cover: 1.2, jitter: 0.016, accent: 0.2, edge: 0.05, tail: 0.35 });
     layer(0, { ...sky, len: [30, 70], wid: [6, 10], cover: 0.2, jitter: 0.02, accent: 0.35, edge: 0.04, tail: 0.4 });
-    const tr = { accents: GRASS_ACCENTS, spread: 0.3 };
-    layer(1, { ...tr, len: [14, 30], wid: [10, 15], cover: 2.4, jitter: 0.03, accent: 0.08, tail: 0.4 });
-    layer(1, { ...tr, len: [9, 20], wid: [5, 8], cover: 0.8, jitter: 0.035, accent: 0.12, tail: 0.5 });
-    const gr = { accents: GRASS_ACCENTS };
-    layer(2, { ...gr, len: [34, 70], wid: [14, 22], cover: 1.9, jitter: 0.02, accent: 0.08, grow: 0.6, tail: 0.4 });
-    layer(2, { ...gr, len: [26, 56], wid: [5.5, 9.5], cover: 1.5, jitter: 0.03, accent: 0.22, grow: 0.9, taper: 0.3, tail: 0.65, shade: 0.18, fromBase: true, spread: 0.1 });
-    layer(2, { ...gr, len: [16, 36], wid: [3.2, 5], cover: 0.35, jitter: 0.04, accent: 0.45, grow: 1, taper: 0.3, tail: 0.7, fromBase: true, spread: 0.14 });
+    if (!CL) {
+        const tr = { accents: GRASS_ACCENTS, spread: 0.3 };
+        layer(1, { ...tr, len: [14, 30], wid: [10, 15], cover: 2.4, jitter: 0.03, accent: 0.08, tail: 0.4 });
+        layer(1, { ...tr, len: [9, 20], wid: [5, 8], cover: 0.8, jitter: 0.035, accent: 0.12, tail: 0.5 });
+        const gr = { accents: GRASS_ACCENTS };
+        layer(2, { ...gr, len: [34, 70], wid: [14, 22], cover: 1.9, jitter: 0.02, accent: 0.08, grow: 0.6, tail: 0.4 });
+        layer(2, { ...gr, len: [26, 56], wid: [5.5, 9.5], cover: 1.5, jitter: 0.03, accent: 0.22, grow: 0.9, taper: 0.3, tail: 0.65, shade: 0.18, fromBase: true, spread: 0.1 });
+        layer(2, { ...gr, len: [16, 36], wid: [3.2, 5], cover: 0.35, jitter: 0.04, accent: 0.45, grow: 1, taper: 0.3, tail: 0.7, fromBase: true, spread: 0.14 });
+    }
 
     // ---- light the paint from the upper left ----
     const imp = opts.impasto;
@@ -386,12 +408,12 @@ function paint(canvas, layoutName, opts) {
 const q = new URLSearchParams(location.search);
 const $ = id => document.getElementById(id);
 if (q.has('render')) document.body.classList.add('render');
-for (const k of ['layout', 'seed', 'length', 'width', 'impasto']) if (q.has(k)) $(k).value = q.get(k);
+for (const k of ['layout', 'part', 'seed', 'length', 'width', 'impasto']) if (q.has(k)) $(k).value = q.get(k);
 const show = () => { for (const k of ['length', 'width', 'impasto']) $(k + 'V').textContent = (+$(k).value).toFixed(2); };
 function run() {
     show();
     const t = performance.now();
-    paint($('out'), $('layout').value, { seed: +$('seed').value, length: +$('length').value, width: +$('width').value, impasto: +$('impasto').value });
+    paint($('out'), $('layout').value, { part: $('part').value, seed: +$('seed').value, length: +$('length').value, width: +$('width').value, impasto: +$('impasto').value });
     window.paintMs = Math.round(performance.now() - t);
     window.painted = true;
 }
@@ -399,7 +421,7 @@ for (const k of ['length', 'width', 'impasto']) $(k).addEventListener('input', s
 $('go').onclick = () => { window.painted = false; setTimeout(run, 10); };
 $('save').onclick = () => {
     const a = document.createElement('a');
-    a.download = `sky-${$('layout').value}.webp`;
+    a.download = `${$('part').value === 'clouds' ? 'clouds' : 'sky'}-${$('layout').value}.webp`;
     a.href = $('out').toDataURL('image/webp', 0.84);
     a.click();
 };

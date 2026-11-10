@@ -26,10 +26,10 @@ body {
     font-size: 1.25rem;
     line-height: 1.45;
     -webkit-font-smoothing: antialiased;
-    background: #8fb6db url("assets/sky-wide.webp?v=20261110-soft") center 75% / cover no-repeat;
+    background: #8fb6db url("assets/sky-wide.webp?v=20261110-wind") center 75% / cover no-repeat;
 }
 @media (max-aspect-ratio: 4/5) {
-    body { background-image: url("assets/sky-tall.webp?v=20261110-soft"); background-position: center bottom; }
+    body { background-image: url("assets/sky-tall.webp?v=20261110-wind"); background-position: center bottom; }
 }
 a { color: inherit; text-decoration: none; }
 a:hover { color: var(--sun); }
@@ -45,6 +45,21 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
     padding: clamp(14px, 2.4vw, 32px) var(--gutter) max(clamp(16px, 3vh, 36px), env(safe-area-inset-bottom));
     overflow: hidden;
 }
+
+/* The clouds are their own layer over the sky so sunflower.js can let them drift, and the meadow
+   canvas is that script's moving copy of the grass. Without the script both simply sit still. */
+.clouds {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background: url("assets/clouds-wide.webp?v=20261110-wind") center 75% / cover repeat-x;
+    will-change: transform;
+}
+@media (max-aspect-ratio: 4/5) {
+    .clouds { background-image: url("assets/clouds-tall.webp?v=20261110-wind"); background-position: center bottom; }
+}
+.meadow { position: absolute; left: 0; z-index: 0; display: block; pointer-events: none; }
 
 .topbar { position: relative; z-index: 2; display: flex; justify-content: space-between; align-items: center; }
 .mark { display: inline-flex; padding: 8px; margin: -8px; }

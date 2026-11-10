@@ -134,6 +134,7 @@ const DAB_VS = COMMON + /* glsl */`
 uniform highp sampler2D uZ;
 uniform vec2 uR;      // target size in device px
 uniform float uU;     // device px per painting unit
+uniform float uGr;    // how far the meadow has leaned at the flower's foot, world units
 in vec2 aC;
 in vec3 aP, aD, aN; in vec4 aF, aM, aS;   // aS = (length, width, seed, opacity)
 out vec2 vQ, vO; out vec4 vS; out vec3 vA, vB;
@@ -146,6 +147,7 @@ vec3 accent(float mt, float r) {
 }
 void main() {
     vec3 p = dfm(aP, aN, aF, aM), p1 = dfm(aP + aD * .03, aN, aF, aM);
+    if (aM.y > 4.5) { p.x += uGr; p1.x += uGr; }
     vec2 c = p.xy * uV.xy + uV.zw;
     vec2 d = (p1.xy - p.xy) * uV.xy * uR * .5;
     float fs = clamp(length(d) / (.03 * uV.x * uR.x * .5), 0., 1.);   // 1 flat-on, 0 end-on
@@ -468,7 +470,7 @@ function build(THREE, W, H, unit, meadow) {
     const ib = new THREE.InstancedInterleavedBuffer(D, 21);
     [['aP', 3], ['aD', 3], ['aN', 3], ['aF', 4], ['aM', 4], ['aS', 4]].reduce((o, [name, n]) => (dg.setAttribute(name, new THREE.InterleavedBufferAttribute(ib, n, o)), o + n), 0);
     dg.instanceCount = nI;
-    return { geo, dg, mats, wind, dropU, pose, view: new THREE.Vector4(2 / wW, 2 / wH, 0, -1), hide: HIDE };
+    return { geo, dg, mats, wind, dropU, pose, view: new THREE.Vector4(2 / wW, 2 / wH, 0, -1), hide: HIDE, ppw };
 }
 
 // Brush streaks, as in paint.html's Canvas.streak: noise smeared far along the stroke and
@@ -509,6 +511,99 @@ function streaks(THREE) {
     return tex;
 }
 
+// ---------------------------------------------------------------- meadow and clouds
+
+// The meadow is redrawn from the page's own background with a sideways lean that follows the
+// same wind as the flower: the same force, delayed by distance, so a gust is seen crossing
+// the field and reaching the stem. The lean grows from nothing at the horizon, so the strip
+// meets the still painting above it without a seam.
+const MEADOW_FS = `#version 300 es
+precision highp float;
+uniform sampler2D uT; uniform vec2 uS; uniform vec3 uP, uG[3];   // uP: time, flower x, px per unit
+in vec2 v; out vec4 o;
+void main() {
+    float x = v.x * uS.x, ft = 1. - v.y;
+    float tl = uP.x - (x - uP.y) / (420. * uP.z) + .4 * sin(x * .011 / uP.z + ft * 4.);
+    float g = 0.;
+    for (int i = 0; i < 3; i++) { float q = (tl - uG[i].x) / uG[i].z; if (q > 0.) g += uG[i].y * q * exp(1. - q); }
+    float f = .021 + .042 * (.5 * sin(.53 * tl + 1.3) + .3 * sin(.91 * tl + 4.1) + .2 * sin(1.67 * tl + .5)) + .1 * g;
+    float rip = sin(x * .07 / uP.z - tl * 2.6 + ft * 9.) * (.25 + g);
+    float dx = (f * 110. + rip * 1.6) * pow(smoothstep(.06, 1., ft), 1.2) * uP.z;
+    o = vec4(texture(uT, vec2(v.x - dx / uS.x, v.y)).rgb, 1.);
+}`;
+
+function scenery(home) {
+    const clouds = home.querySelector('.clouds');
+    const cv = document.createElement('canvas');
+    cv.className = 'meadow';
+    cv.setAttribute('aria-hidden', 'true');
+    cv.style.display = 'none';
+    const gl = cv.getContext('webgl2', { alpha: false, antialias: false, depth: false, stencil: false });
+    let ok = !!gl, ready = false, tile = 0, cx = 0, uni = null, size = [1, 1], unit = 1, tex = null, prog = null;
+    if (ok) {
+        const sh = (type, src) => { const x = gl.createShader(type); gl.shaderSource(x, src); gl.compileShader(x); return x; };
+        prog = gl.createProgram();
+        gl.attachShader(prog, sh(gl.VERTEX_SHADER, '#version 300 es\nout vec2 v; void main() { v = vec2(gl_VertexID & 1, gl_VertexID >> 1) * 2.; gl_Position = vec4(v * 2. - 1., 0., 1.); }'));
+        gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, MEADOW_FS));
+        gl.linkProgram(prog);
+        ok = gl.getProgramParameter(prog, gl.LINK_STATUS);
+        if (ok) {
+            gl.useProgram(prog);
+            uni = { S: gl.getUniformLocation(prog, 'uS'), P: gl.getUniformLocation(prog, 'uP'), G: gl.getUniformLocation(prog, 'uG') };
+            tex = gl.createTexture();
+            (clouds || home.firstChild).after(cv);
+        }
+    }
+    return {
+        // m: how the background image sits on the page (scale, offsets, page size). img: that image.
+        resize(m, img, u, dpr) {
+            unit = u;
+            if (clouds) {   // widen the cloud layer by a tile each side, so it can slide and wrap
+                tile = img.naturalWidth * m.sc;
+                Object.assign(clouds.style, { left: -tile + 'px', right: 'auto', width: m.W + 2 * tile + 'px', backgroundSize: tile + 'px auto', backgroundPositionX: m.ox + tile + 'px' });
+            }
+            if (!ok) return;
+            const hz = (img.naturalWidth > img.naturalHeight ? .84 : .86) + .004;
+            const y0 = Math.floor((m.oy + hz * img.naturalHeight * m.sc) * dpr) / dpr, h = m.H - y0;
+            if (h < 4) { ready = false; cv.style.display = 'none'; return; }
+            const c = document.createElement('canvas'), g = c.getContext('2d');
+            c.width = cv.width = Math.ceil(m.W * dpr); c.height = cv.height = Math.ceil(h * dpr);
+            g.imageSmoothingQuality = 'high';
+            g.drawImage(img, -m.ox / m.sc, (y0 - m.oy) / m.sc, c.width / dpr / m.sc, c.height / dpr / m.sc, 0, 0, c.width, c.height);
+            gl.bindTexture(gl.TEXTURE_2D, tex);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, c);
+            for (const k of [gl.TEXTURE_MIN_FILTER, gl.TEXTURE_MAG_FILTER]) gl.texParameteri(gl.TEXTURE_2D, k, gl.LINEAR);
+            for (const k of [gl.TEXTURE_WRAP_S, gl.TEXTURE_WRAP_T]) gl.texParameteri(gl.TEXTURE_2D, k, gl.CLAMP_TO_EDGE);
+            Object.assign(cv.style, { top: y0 + 'px', height: c.height / dpr + 'px', width: c.width / dpr + 'px' });
+            size = [c.width / dpr, c.height / dpr];
+            gl.viewport(0, 0, c.width, c.height);
+            ready = true;
+        },
+        // t: wind time. gusts: [start, strength, length]. fx: the flower's x on the page. dt: seconds since the last frame.
+        draw(t, gusts, fx, dt, speed) {
+            if (clouds && tile) {
+                cx = (cx + dt * speed * unit) % tile;
+                clouds.style.transform = `translate3d(${cx.toFixed(2)}px,0,0)`;
+            }
+            if (!ok || !ready || gl.isContextLost()) return;
+            const g = new Float32Array(9).fill(1);
+            gusts.slice(-3).forEach((x, i) => g.set(x, i * 3));
+            for (let i = gusts.length; i < 3; i++) g[i * 3 + 1] = 0;
+            gl.uniform2f(uni.S, size[0], size[1]);
+            gl.uniform3f(uni.P, t, fx, unit);
+            gl.uniform3fv(uni.G, g);
+            gl.drawArrays(gl.TRIANGLES, 0, 3);
+            cv.style.display = '';
+        },
+        destroy() {
+            if (clouds) clouds.removeAttribute('style');
+            cv.remove();
+            gl?.getExtension('WEBGL_lose_context')?.loseContext();
+        },
+    };
+}
+
 // ---------------------------------------------------------------- mounting
 
 function mount(THREE, host) {
@@ -517,7 +612,8 @@ function mount(THREE, host) {
     if (!gl) throw new Error('WebGL2 is not available');
     const R = new THREE.WebGLRenderer({ canvas, context: gl, alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false });
     const standIn = host.querySelector('.sunflower-placeholder');
-    let shaderFailed = false, dead = false, raf = 0, shown = false, seen = true, model = null, last = 0;
+    let shaderFailed = false, dead = false, raf = 0, shown = false, seen = true, model = null, last = 0, drawn = 0, force = .021, unitPx = 1, hostX = 0;
+    const land = scenery(host.parentNode);
     R.debug.onShaderError = () => { shaderFailed = true; };
     R.autoClear = false;
     R.setClearColor(0, 0);
@@ -528,7 +624,7 @@ function mount(THREE, host) {
     const streak = streaks(THREE);
     const U = {
         uM: { value: null }, uW: { value: null }, uV: { value: null }, uDrop: { value: 0 }, uHide: { value: 0 },
-        uR: { value: new THREE.Vector2() }, uU: { value: 1 }, uE: { value: new THREE.Vector2() },
+        uR: { value: new THREE.Vector2() }, uU: { value: 1 }, uGr: { value: 0 }, uE: { value: new THREE.Vector2() },
         uZ: { value: rtM.depthTexture }, uT: { value: rtM.texture }, uSt: { value: streak },
         uC: { value: rtP.textures[0] }, uH: { value: rtP.textures[1] },
     };
@@ -557,7 +653,7 @@ function mount(THREE, host) {
             let g = 0;
             for (const [t0, a, d] of gusts) { const x = (T - t0) / d; g += a * x * exp(1 - x); }
             const n1 = .5 * sin(.53 * T + 1.3) + .3 * sin(.91 * T + 4.1) + .2 * sin(1.67 * T + .5);
-            const f = .021 + .042 * n1 + .1 * g, fz = .012 * sin(.41 * T + 2.2) + .008 * sin(1.13 * T) + .02 * g;
+            const f = force = .021 + .042 * n1 + .1 * g, fz = .012 * sin(.41 * T + 2.2) + .008 * sin(1.13 * T) + .02 * g;
             vth += (10.2 * (f - th) - 2.6 * vth) * h; th += vth * h;   // 0.5 Hz, damping 0.4
             vtz += (10.2 * (fz - tz) - 2.6 * vtz) * h; tz += vtz * h;
             flut = .3 + .25 * (.5 + .5 * sin(1.9 * T + 2) * sin(.7 * T)) + 1.1 * g;
@@ -570,10 +666,13 @@ function mount(THREE, host) {
         return !b || t <= a[0] ? a[1] : a[1] + (b[1] - a[1]) * clamp((t - a[0]) / (b[0] - a[0]), 0, 1);
     };
 
-    const draw = () => {
+    const draw = (dt = 0) => {
         if (!model) return;
-        if (still.matches) model.pose(.02, 0, .02, 0, 0); else model.pose(th, tz, hist.length ? lagged() : th, flut, T);
+        const calm = still.matches;
+        if (calm) model.pose(.02, 0, .02, 0, 0); else model.pose(th, tz, hist.length ? lagged() : th, flut, T);
         U.uDrop.value = model.dropU.value;
+        U.uGr.value = (calm ? .021 : force) * 95 * unitPx / model.ppw;
+        try { land.draw(calm ? 0 : T, calm ? [] : gusts, hostX, calm ? 0 : dt, 3 + 4 * flut); } catch (e) { /* the scenery is a nicety */ }
         R.setRenderTarget(rtM); R.clear(); R.render(mesh, cam);
         R.setRenderTarget(rtP); R.clear(); R.render(base, cam); R.render(dabs, cam);
         R.setRenderTarget(null); R.clear(); R.render(light, cam);
@@ -590,7 +689,8 @@ function mount(THREE, host) {
         try {
             stepWind(last ? (now - last) / 1000 : 1 / 60);
             last = now;
-            draw();
+            // Twelve frames a second, like painted animation: at sixty the paint moves too smoothly.
+            if (now - drawn > 1000 / 12 - 4) { draw(min((now - drawn) / 1000, .25)); drawn = now; }
         } catch (e) { return fail(e); }
         kick();
     };
@@ -624,22 +724,26 @@ function mount(THREE, host) {
                 const c = document.createElement('canvas'), w = c.width = img.naturalWidth >> 2, h = c.height = img.naturalHeight >> 2;
                 const g = c.getContext('2d', { willReadFrequently: true });
                 g.drawImage(img, 0, 0, w, h);
-                field = { url, d: g.getImageData(0, 0, w, h).data, w, h, iw: img.naturalWidth, ih: img.naturalHeight };
+                field = { url, img, d: g.getImageData(0, 0, w, h).data, w, h, iw: img.naturalWidth, ih: img.naturalHeight };
                 sized = ''; resize();
             } catch (e) { /* keep the fallback greens */ }
         };
         img.src = url;
     };
-    const meadowAt = (W, H) => {
+    // How the background image sits on the page: its scale and where its corner falls.
+    const bgMap = () => {
         if (!field || field.url !== fieldUrl) return null;
-        const root = document.documentElement.getBoundingClientRect(), box = host.getBoundingClientRect();
+        const root = document.documentElement.getBoundingClientRect();
         const pos = getComputedStyle(document.body).backgroundPosition.split(' ').map((x) => parseFloat(x) / 100);
         if (pos.length !== 2 || pos.some(isNaN)) return null;
         const sc = max(root.width / field.iw, root.height / field.ih);
-        const ox = (root.width - field.iw * sc) * pos[0], oy = (root.height - field.ih * sc) * pos[1];
-        const bx = box.left - root.left + W / 2, by = box.top - root.top + H;
+        return { sc, ox: (root.width - field.iw * sc) * pos[0], oy: (root.height - field.ih * sc) * pos[1], W: root.width, H: root.height, left: root.left, top: root.top };
+    };
+    const meadowAt = (m, W, H) => {
+        if (!m) return null;
+        const box = host.getBoundingClientRect(), bx = box.left - m.left + W / 2, by = box.top - m.top + H;
         return (x, y) => {
-            const i = (clamp(round((by - y - oy) / sc / 4), 0, field.h - 1) * field.w + clamp(round((bx + x - ox) / sc / 4), 0, field.w - 1)) * 4;
+            const i = (clamp(round((by - y - m.oy) / m.sc / 4), 0, field.h - 1) * field.w + clamp(round((bx + x - m.ox) / m.sc / 4), 0, field.w - 1)) * 4;
             return [field.d[i] / 255, field.d[i + 1] / 255, field.d[i + 2] / 255];
         };
     };
@@ -657,7 +761,13 @@ function mount(THREE, host) {
         // CSS px per painting unit: how big paint.html's dabs come out on this screen.
         const unit = matchMedia('(max-aspect-ratio: 4/5)').matches ? max(vw / 1200, vh / 2400) * 2.6 : max(vw / 2560, vh / 1600) * 1.75;
         try {
-            const next = build(THREE, W, H, unit, meadowAt(W, H));
+            const m = bgMap();
+            const next = build(THREE, W, H, unit, meadowAt(m, W, H));
+            unitPx = unit;
+            if (m) {
+                hostX = host.getBoundingClientRect().left - m.left + W / 2;
+                try { land.resize(m, field.img, unit, min(devicePixelRatio || 1, 2)); } catch (e) { /* the scenery is a nicety */ }
+            }
             model?.geo.dispose(); model?.dg.dispose();
             model = next;
             mesh.geometry = model.geo; dabs.geometry = model.dg;
@@ -689,6 +799,7 @@ function mount(THREE, host) {
         R.dispose();
         if (!gl.isContextLost()) R.forceContextLoss();
         canvas.remove();
+        land.destroy();
         if (standIn && !standIn.isConnected) host.appendChild(standIn);
     }
     host.appendChild(canvas);
