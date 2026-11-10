@@ -1,5 +1,6 @@
 /* Homepage: one painted screen. The sky is an oil painting in assets/sky-*.webp, made by background-src/paint.html.
-   Text is set in paint too: SVG filters in index.html wear its edges and light the name like impasto. */
+   The text is laid over it like a thin glaze: it multiplies with the paint beneath, so the brush
+   strokes show through the letters, and SVG filters in index.html wear its edges a little. */
 :root {
     --ink: #17233f;
     --paint: #1d2f66;
@@ -8,7 +9,7 @@
     --sun: #9a4a0b;
     --halo: 0 0 10px rgba(250, 247, 238, .35);
     --serif: 'EB Garamond', Georgia, serif;
-    --display: 'Fraunces', Georgia, serif;
+    --display: 'Cormorant Garamond', 'EB Garamond', Georgia, serif;
     --gutter: clamp(20px, 4.5vw, 72px);
 }
 
@@ -59,14 +60,13 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
 
 .intro { position: relative; z-index: 2; align-self: start; padding-top: clamp(28px, 9vh, 110px); max-width: 34rem; }
 .name {
-    margin: 0 0 0 -.04em;
+    margin: 0 0 0 -.03em;
     font-family: var(--display);
     font-style: italic;
-    font-weight: 600;
-    font-variation-settings: 'SOFT' 100, 'WONK' 1, 'opsz' 144;
-    font-size: clamp(3.4rem, 7.4vw, 7rem);
-    line-height: .95;
-    letter-spacing: -.012em;
+    font-weight: 500;
+    font-size: clamp(3.9rem, 8.4vw, 8rem);
+    line-height: .9;
+    letter-spacing: -.005em;
     color: var(--paint);
     filter: url(#paint-name);
 }
@@ -145,7 +145,7 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
     body { font-size: 1.0625rem; }
     .nav a { font-size: .875rem; }
     .intro { padding-top: clamp(20px, 6vh, 56px); }
-    .name { font-size: clamp(3rem, 14vw, 4.5rem); }
+    .name { font-size: clamp(3.3rem, 15.5vw, 5rem); }
     .roles { font-size: 1.125rem; }
     .sunflower { right: -2vw; bottom: 1vh; width: 50vw; height: min(100vw, 54vh); }
 }
@@ -155,4 +155,11 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
 }
 @media (prefers-reduced-motion: reduce) {
     .sunflower-placeholder .sway, .sunflower-placeholder .leaf { animation: none; }
+}
+
+/* Glaze the text into the painting where the browser can blend it. The colours are lighter
+   because they darken whatever paint lies under them. */
+@supports (mix-blend-mode: multiply) {
+    :root { --ink: #46557f; --ink-soft: #62709a; --paint: #5d70a6; --sun: #a8642a; }
+    .topbar, .intro { mix-blend-mode: multiply; }
 }

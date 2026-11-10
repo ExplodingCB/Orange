@@ -36,8 +36,8 @@
     <link rel="preload" as="image" href="assets/sky-tall.webp?v=20261110-soft" media="(max-aspect-ratio: 4/5)" fetchpriority="high">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&family=Fraunces:ital,opsz,wght,SOFT,WONK@1,9..144,600,100,1&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="home.css?v=20261110-soft">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@1,500&family=EB+Garamond:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="home.css?v=20261110-gentle">
     <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js" } }</script>
     <script type="module" src="sunflower/sunflower.js?v=20261110"></script>
     <script type="application/ld+json">
@@ -90,19 +90,11 @@
     </script>
 </head>
 <body>
-    <!-- Paint filters for the text: brush-worn edges, and for the name, bristle relief lit from the sun's side. -->
+    <!-- Paint filters for the text: they wear its edges a little, like a brush would. -->
     <svg class="paint-defs" width="0" height="0" aria-hidden="true" focusable="false">
         <filter id="paint-name" x="-4%" y="-8%" width="108%" height="116%" color-interpolation-filters="sRGB">
-            <feTurbulence type="fractalNoise" baseFrequency=".02 .03" numOctaves="2" seed="4" result="warp"/>
-            <feDisplacementMap in="SourceGraphic" in2="warp" scale="3.5" xChannelSelector="R" yChannelSelector="G" result="ink"/>
-            <feTurbulence type="fractalNoise" baseFrequency=".02 .12" numOctaves="3" seed="9" result="bristle"/>
-            <feGaussianBlur in="ink" stdDeviation="2.2" result="soft"/>
-            <feComposite in="soft" in2="bristle" operator="arithmetic" k1=".45" k2=".7" k3="0" k4="0" result="height"/>
-            <feDiffuseLighting in="height" surfaceScale="2.4" diffuseConstant="1.15" lighting-color="#fff" result="lit"><feDistantLight azimuth="225" elevation="52"/></feDiffuseLighting>
-            <feComposite in="ink" in2="lit" operator="arithmetic" k1=".95" k2=".38" k3="0" k4="0" result="shaded"/>
-            <feSpecularLighting in="height" surfaceScale="2.4" specularConstant=".22" specularExponent="18" lighting-color="#dfe8ff" result="spec"><feDistantLight azimuth="225" elevation="52"/></feSpecularLighting>
-            <feComposite in="spec" in2="shaded" operator="arithmetic" k1="0" k2="1" k3="1" k4="0"/>
-            <feComposite in2="ink" operator="in"/>
+            <feTurbulence type="fractalNoise" baseFrequency=".03 .045" numOctaves="2" seed="4"/>
+            <feDisplacementMap in="SourceGraphic" scale="2.4" xChannelSelector="R" yChannelSelector="G"/>
         </filter>
         <filter id="paint-text" x="-2%" y="-10%" width="104%" height="120%" color-interpolation-filters="sRGB">
             <feTurbulence type="fractalNoise" baseFrequency=".09" numOctaves="2" seed="2"/>
