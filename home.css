@@ -67,10 +67,7 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
 .nav { display: flex; gap: clamp(18px, 2.4vw, 34px); }
 .nav a {
     padding-block: 10px;
-    font-size: 1.0625rem;
-    font-weight: 700;
-    letter-spacing: .14em;
-    text-transform: uppercase;
+    font-size: 1.5rem;   /* the same setting as the lines under the name */
     text-shadow: var(--halo);
 }
 
@@ -159,7 +156,7 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
 
 @media (max-width: 700px) {
     body { font-size: 1.125rem; }
-    .nav a { font-size: 1rem; }
+    .nav a { font-size: 1.3125rem; }
     .intro { padding-top: clamp(20px, 6vh, 56px); }
     .name { font-size: clamp(3rem, 14vw, 4.5rem); }
     .roles { font-size: 1.3125rem; }
