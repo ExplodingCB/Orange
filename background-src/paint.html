@@ -99,7 +99,7 @@ const wrap = a => Math.atan2(Math.sin(a), Math.cos(a));
 
 function paint(canvas, layoutName, opts) {
     const L = LAYOUTS[layoutName];
-    // Painted at 1.5x the nominal size so the brushwork stays crisp on high-density screens.
+    // Painted at 1.5x the nominal size so it stays sharp on high-density screens.
     const SS = 1.5, W = Math.round(L.w * SS), H = Math.round(L.h * SS), U = L.unit * SS;
     const lenK = opts.length, widK = opts.width;
     canvas.width = W; canvas.height = H;
@@ -184,7 +184,7 @@ function paint(canvas, layoutName, opts) {
     function angleAt(x, y, reg) {
         const X = x / U, Y = y / U;
         if (reg === 0) {
-            let a = -0.05 + (noise(X / 420, Y / 260, 2) - 0.5) * 1.15 + 0.1 * Math.sin(X / 230 + 3 * noise(X / 300, Y / 300, 1));
+            let a = -0.05 + (noise(X / 420, Y / 260, 2) - 0.5) * 1.5 + 0.1 * Math.sin(X / 230 + 3 * noise(X / 300, Y / 300, 1));
             const e = 5 * U;
             const gx = cloudAt(x + e, y)[0] - cloudAt(x - e, y)[0];
             const gy = cloudAt(x, y + e)[0] - cloudAt(x, y - e)[0];
@@ -221,7 +221,7 @@ function paint(canvas, layoutName, opts) {
         sctx.putImageData(img, 0, 0);
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(small, 0, 0, W, H);   // unblurred first, so the blur's soft border never shows
-        ctx.filter = `blur(${2.5 * U}px)`;
+        ctx.filter = `blur(${4 * U}px)`;
         ctx.drawImage(small, 0, 0, W, H);
         ctx.filter = 'none';
     }
@@ -235,8 +235,7 @@ function paint(canvas, layoutName, opts) {
     // round where the brush touches down and lifting to a point, with a few soft streaks of
     // the brush's second colour dragged along inside it.
     function trace(x, y, reg, s, a, steps, step, c0) {
-        const out = [], in0 = reg === 0 && cloudAt(x, y)[0] > 0.4;
-        let over = -1;   // steps the brush carries on past an edge, so shapes overlap a little
+        const out = [];
         for (let i = 0; i < steps; i++) {
             const want = angleAt(x, y, reg) + (a.back ? Math.PI : 0);
             a.v += clamp(wrap(want - a.v), -0.05, 0.05);
@@ -244,11 +243,7 @@ function paint(canvas, layoutName, opts) {
             if (x < -60 * U || x > W + 60 * U || y < -60 * U || y > H + 60 * U) break;
             const r = region(x, y);
             if (r !== reg && !(reg === 2 && r === 1 && i < 3)) break;
-            if (over < 0 && reg === 0) {
-                const c = target(x, y);
-                if ((cloudAt(x, y)[0] > 0.4) !== in0 || Math.hypot(c[0] - c0[0], c[1] - c0[1], c[2] - c0[2]) > s.edge) over = 1 + ((rand() * 4) | 0);
-            }
-            if (over >= 0 && over-- === 0) break;
+            if (s.edge) { const c = target(x, y); if (Math.hypot(c[0] - c0[0], c[1] - c0[1], c[2] - c0[2]) > s.edge) break; }
             out.push([x, y]);
         }
         return out;
@@ -298,20 +293,19 @@ function paint(canvas, layoutName, opts) {
         hctx.globalAlpha = 0.95; hctx.fillStyle = grey(base); hctx.fill();
         // Paint pushed up along the sides of the mark.
         hctx.globalAlpha = 0.35; hctx.strokeStyle = grey(base + 0.22); hctx.lineWidth = 1.4 * U; hctx.lineJoin = 'round'; hctx.stroke();
-        // Bristles: fine streaks across the whole mark. Neighbours carry nearly the same
-        // paint, each leaves its own furrow, and they run dry at different points of the tail.
-        const ns = clamp(Math.round(hwMax / (0.6 * U)), 3, 28), loadSeed = rand() * 100;
+        // Streaks: the second colour, and the furrows the bristles leave.
+        const ns = clamp(Math.round(hwMax / (2.6 * U)), 1, 5);
         for (let j = 0; j < ns; j++) {
-            const f = ((j + 0.5) / ns * 2 - 1) * 0.9, e2 = f * f;
-            const i0 = Math.round(N * (0.01 + 0.1 * e2 * rand())), i1 = Math.round(N * (1 - (s.dry || 0.22) * rand() ** 1.5 - 0.1 * e2 * rand()));
+            const i0 = Math.round(N * R(0.02, 0.3)), i1 = Math.round(N * R(0.65, 0.97));
             if (i1 - i0 < 3) continue;
-            const off = (i) => hw(i) * f, wf = 1.25 / ns;
-            const shw = (i) => Math.max(0.35 * U, hw(i) * wf) * Math.min(1, (i - i0) / 2, (i1 - i) / 3);
-            const v = 1 + gauss() * 0.022, c = mix(c1, c2, smooth(0.3, 0.7, noise(loadSeed, j * 0.4, 1)));
+            const f = ((j + 0.5) / ns - 0.5) * 1.5 + gauss() * 0.1, wf = R(0.16, 0.34);
+            const off = (i) => hw(i) * f * 0.8;
+            const shw = (i) => hw(i) * wf * Math.sqrt(Math.max(0, Math.sin(Math.PI * (i - i0) / (i1 - i0))));
+            const v = 1 + gauss() * 0.02, c = mix(c1, c2, R(0.35, 1));
             ribbon(ctx, pts, nrm, i0, i1, off, shw);
-            ctx.globalAlpha = 0.8; ctx.fillStyle = css([c[0] * v, c[1] * v, c[2] * v]); ctx.fill();
+            ctx.globalAlpha = R(0.35, 0.7); ctx.fillStyle = css([c[0] * v, c[1] * v, c[2] * v]); ctx.fill();
             ribbon(hctx, pts, nrm, i0, i1, off, shw);
-            hctx.globalAlpha = 0.85; hctx.fillStyle = grey(base + R(-0.2, 0.24) + 0.12 * e2); hctx.fill();
+            hctx.globalAlpha = 0.6; hctx.fillStyle = grey(base + R(-0.14, 0.16)); hctx.fill();
         }
         ctx.globalAlpha = hctx.globalAlpha = 1;
     }
@@ -342,15 +336,15 @@ function paint(canvas, layoutName, opts) {
     }
 
     const sky = { accents: SKY_ACCENTS };
-    layer(0, { ...sky, len: [70, 150], wid: [12, 18], cover: 1.9, jitter: 0.012, accent: 0.06, edge: 0.13, tail: 0.3 });
-    layer(0, { ...sky, len: [40, 90], wid: [8, 12], cover: 1.3, jitter: 0.016, accent: 0.2, edge: 0.1, tail: 0.35 });
-    layer(0, { ...sky, len: [20, 50], wid: [5, 7], cover: 0.4, jitter: 0.02, accent: 0.3, edge: 0.08, tail: 0.4 });
+    layer(0, { ...sky, len: [110, 220], wid: [22, 34], cover: 1.8, jitter: 0.012, accent: 0.06, edge: 0.075, tail: 0.3 });
+    layer(0, { ...sky, len: [60, 130], wid: [12, 19], cover: 1.2, jitter: 0.016, accent: 0.2, edge: 0.05, tail: 0.35 });
+    layer(0, { ...sky, len: [30, 70], wid: [6, 10], cover: 0.2, jitter: 0.02, accent: 0.35, edge: 0.04, tail: 0.4 });
     const tr = { accents: GRASS_ACCENTS, spread: 0.3 };
     layer(1, { ...tr, len: [14, 30], wid: [10, 15], cover: 2.4, jitter: 0.03, accent: 0.08, tail: 0.4 });
     layer(1, { ...tr, len: [9, 20], wid: [5, 8], cover: 0.8, jitter: 0.035, accent: 0.12, tail: 0.5 });
     const gr = { accents: GRASS_ACCENTS };
     layer(2, { ...gr, len: [34, 70], wid: [14, 22], cover: 1.9, jitter: 0.02, accent: 0.08, grow: 0.6, tail: 0.4 });
-    layer(2, { ...gr, len: [26, 56], wid: [5.5, 9.5], cover: 1.5, jitter: 0.03, accent: 0.22, grow: 0.9, taper: 0.3, tail: 0.65, shade: 0.12, fromBase: true, spread: 0.1 });
+    layer(2, { ...gr, len: [26, 56], wid: [5.5, 9.5], cover: 1.5, jitter: 0.03, accent: 0.22, grow: 0.9, taper: 0.3, tail: 0.65, shade: 0.18, fromBase: true, spread: 0.1 });
     layer(2, { ...gr, len: [16, 36], wid: [3.2, 5], cover: 0.35, jitter: 0.04, accent: 0.45, grow: 1, taper: 0.3, tail: 0.7, fromBase: true, spread: 0.14 });
 
     // ---- light the paint from the upper left ----
@@ -359,7 +353,7 @@ function paint(canvas, layoutName, opts) {
         const hb = document.createElement('canvas');
         hb.width = W; hb.height = H;
         const hbx = hb.getContext('2d');
-        hbx.filter = `blur(${0.8 * U}px)`;
+        hbx.filter = `blur(${1.3 * U}px)`;
         hbx.drawImage(hc, 0, 0);
         const hd = hbx.getImageData(0, 0, W, H).data;
         const id = ctx.getImageData(0, 0, W, H);
@@ -379,7 +373,7 @@ function paint(canvas, layoutName, opts) {
                 const gy = (hd[k + W * 4] - hd[k - W * 4]) + 5 * (weave(x, y + 1) - weave(x, y - 1));
                 const nx = -gx * s, ny = -gy * s, nl = Math.sqrt(nx * nx + ny * ny + 1);
                 const diff = (nx * lx + ny * ly + lz) / (nl * ll);
-                const shade = 1 + 0.55 * (diff - lz / ll);
+                const shade = 1 + 0.36 * (diff - lz / ll);
                 const spec = Math.pow(clamp((nx * hx + ny * hy + hz) / (nl * hl), 0, 1), 36) * 7 * imp;
                 d[k] = d[k] * shade + spec; d[k + 1] = d[k + 1] * shade + spec; d[k + 2] = d[k + 2] * shade + spec;
             }
