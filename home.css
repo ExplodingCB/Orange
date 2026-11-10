@@ -8,8 +8,8 @@
     --paper: #faf7ee;
     --sun: #9a4a0b;
     --halo: 0 0 10px rgba(250, 247, 238, .35);
-    --serif: 'EB Garamond', Georgia, serif;
-    --display: 'Cormorant Garamond', 'EB Garamond', Georgia, serif;
+    --sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --display: 'Cormorant Garamond', Georgia, serif;
     --gutter: clamp(20px, 4.5vw, 72px);
 }
 
@@ -21,8 +21,9 @@ body {
     min-height: 100vh;
     min-height: 100svh;
     color: var(--ink);
-    font-family: var(--serif);
-    font-size: 1.1875rem;
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 1rem;
     line-height: 1.45;
     -webkit-font-smoothing: antialiased;
     background: #8fb6db url("assets/sky-wide.webp?v=20261110-soft") center 75% / cover no-repeat;
@@ -51,9 +52,9 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
 .nav { display: flex; gap: clamp(18px, 2.4vw, 34px); }
 .nav a {
     padding-block: 10px;
-    font-size: .95rem;
-    font-weight: 500;
-    letter-spacing: .16em;
+    font-size: .8125rem;
+    font-weight: 700;
+    letter-spacing: .14em;
     text-transform: uppercase;
     text-shadow: var(--halo);
 }
@@ -70,11 +71,10 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
     color: var(--paint);
     filter: url(#paint-name);
 }
-.nav, .roles, .resume { filter: url(#paint-text); }
-.roles { list-style: none; margin: clamp(18px, 3.4vh, 34px) 0 0; padding: 0; font-size: 1.3125rem; }
+.roles { list-style: none; margin: clamp(18px, 3.4vh, 34px) 0 0; padding: 0; font-size: 1.125rem; }
 .roles li + li { margin-top: .15rem; }
 .roles a { display: inline-flex; align-items: center; gap: .55rem; min-height: 44px; text-shadow: var(--halo); }
-.at { color: var(--ink-soft); font-style: italic; }
+.at { color: var(--ink-soft); font-weight: 500; }
 .brand {
     flex: none;
     width: 1.15em;
@@ -92,13 +92,13 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
     gap: .35rem;
     margin-top: .45rem;
     padding-block: .5rem;
-    font-size: 1.125rem;
+    font-size: 1rem;
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 5px;
     text-shadow: var(--halo);
 }
-.resume-format { color: var(--ink-soft); font-size: .9375rem; }
+.resume-format { color: var(--ink-soft); font-size: .8125rem; font-weight: 500; }
 
 .links { position: relative; z-index: 2; display: flex; gap: 6px; margin-left: -12px; }
 .links a { position: relative; display: inline-grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; }
@@ -142,11 +142,11 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
 }
 
 @media (max-width: 700px) {
-    body { font-size: 1.0625rem; }
-    .nav a { font-size: .875rem; }
+    body { font-size: .9375rem; }
+    .nav a { font-size: .75rem; }
     .intro { padding-top: clamp(20px, 6vh, 56px); }
     .name { font-size: clamp(3.3rem, 15.5vw, 5rem); }
-    .roles { font-size: 1.125rem; }
+    .roles { font-size: 1rem; }
     .sunflower { right: -2vw; bottom: 1vh; width: 50vw; height: min(100vw, 54vh); }
 }
 @media (max-height: 560px) and (min-aspect-ratio: 4/5) {
@@ -160,6 +160,6 @@ a:focus-visible { outline: 2px solid var(--sun); outline-offset: 4px; border-rad
 /* Glaze the text into the painting where the browser can blend it. The colours are lighter
    because they darken whatever paint lies under them. */
 @supports (mix-blend-mode: multiply) {
-    :root { --ink: #46557f; --ink-soft: #62709a; --paint: #5d70a6; --sun: #a8642a; }
+    :root { --ink: #3c4a74; --ink-soft: #5a6892; --paint: #5d70a6; --sun: #a8642a; }
     .topbar, .intro { mix-blend-mode: multiply; }
 }
