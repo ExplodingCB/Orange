@@ -219,7 +219,7 @@
         },
         {
             id: 'betrcooking',
-            url: 'https://betrcooking.com/',
+            url: 'https://cooking.explodingcb.com/',
             name: 'BetrCooking',
             subtitle: 'The family recipe book',
             platform: 'web',
